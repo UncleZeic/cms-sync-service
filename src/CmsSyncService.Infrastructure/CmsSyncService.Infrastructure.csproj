@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\CmsSyncService.Core\CmsSyncService.Core.csproj" />
+    <ProjectReference Include="..\CmsSyncService.Domain\CmsSyncService.Domain.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
