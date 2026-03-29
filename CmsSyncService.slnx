@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CmsSyncService.Api/CmsSyncService.Api.csproj" />
-    <Project Path="src/CmsSyncService.Core/CmsSyncService.Core.csproj" />
+    <Project Path="src/CmsSyncService.Domain/CmsSyncService.Domain.csproj" />
     <Project Path="src/CmsSyncService.Infrastructure/CmsSyncService.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
