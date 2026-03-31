@@ -1,23 +1,98 @@
 using System;
 
-namespace CmsSyncService.Domain
+namespace CmsSyncService.Domain;
+
+public class CmsEntity
 {
-    public class CmsEntity
+    public string Id { get; private set; } = string.Empty;
+
+    public string LatestPayloadJson { get; private set; } = string.Empty;
+
+    public int Version { get; private set; }
+
+    public bool Published { get; private set; }
+
+    public bool AdminDisabled { get; private set; }
+
+    public DateTimeOffset UpdatedAtUtc { get; private set; }
+
+    protected CmsEntity()
     {
-        public Guid Id { get; set; }
-        public uint Version { get; set; }
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
 
-        public DateTime UpdatedAt { get; set; }
+    public static CmsEntity CreatePublished(CmsEvent cmsEvent)
+    {
+        ArgumentNullException.ThrowIfNull(cmsEvent);
 
-        public bool Published { get; set; }
-
-        public bool AdminDisabled { get; set; }
-
-        protected CmsEntity()
+        return new CmsEntity
         {
-            Id = Guid.NewGuid();
-            UpdatedAt = DateTime.UtcNow;
+            Id = cmsEvent.Id,
+            LatestPayloadJson = cmsEvent.Payload ?? "{}",
+            Version = cmsEvent.Version!.Value,
+            Published = true,
+            AdminDisabled = false,
+            UpdatedAtUtc = cmsEvent.Timestamp
+        };
+    }
+
+    public static CmsEntity CreateUnpublished(CmsEvent cmsEvent)
+    {
+        ArgumentNullException.ThrowIfNull(cmsEvent);
+
+        return new CmsEntity
+        {
+            Id = cmsEvent.Id,
+            LatestPayloadJson = cmsEvent.Payload ?? "{}",
+            Version = cmsEvent.Version!.Value,
+            Published = false,
+            AdminDisabled = false,
+            UpdatedAtUtc = cmsEvent.Timestamp
+        };
+    }
+
+    public void ApplyPublish(CmsEvent cmsEvent)
+    {
+        ArgumentNullException.ThrowIfNull(cmsEvent);
+
+        var version = cmsEvent.Version!.Value;
+
+        if (version < Version)
+        {
+            return;
         }
+
+        LatestPayloadJson = cmsEvent.Payload ?? "{}";
+        Version = version;
+        Published = true;
+        UpdatedAtUtc = cmsEvent.Timestamp;
+    }
+
+    public void ApplyUnpublish(CmsEvent cmsEvent)
+    {
+        ArgumentNullException.ThrowIfNull(cmsEvent);
+
+        var version = cmsEvent.Version!.Value;
+
+        if (version < Version)
+        {
+            return;
+        }
+
+        LatestPayloadJson = cmsEvent.Payload ?? "{}";
+        Version = version;
+        Published = false;
+        UpdatedAtUtc = cmsEvent.Timestamp;
+    }
+
+    public void SetAdminDisabled(bool disabled, DateTimeOffset timestampUtc)
+    {
+        AdminDisabled = disabled;
+        UpdatedAtUtc = timestampUtc;
+    }
+
+    public bool IsVisibleToNormalUser()
+    {
+        return Published && !AdminDisabled;
     }
 }
-

@@ -80,7 +80,7 @@ public sealed class CmsEventDto : IValidatableObject
         return new CmsEvent
         {
             Type = ParseType(Type),
-            ExternalId = Id.Trim(),
+            Id = Id.Trim(),
             Payload = Payload?.GetRawText(),
             Version = Version,
             Timestamp = Timestamp
@@ -98,6 +98,18 @@ public sealed class CmsEventDto : IValidatableObject
             "delete" => CmsEventType.Delete,
             _ => throw new InvalidOperationException(
                 $"Cannot normalize unsupported event type '{rawType}'.")
+        };
+    }
+
+    internal CmsEvent ToDomain()
+    {
+        return new CmsEvent
+        {
+            Id = Id.Trim(),
+            Type = ParseType(Type),
+            Payload = Payload?.GetRawText(),
+            Version = Version,
+            Timestamp = Timestamp
         };
     }
 }
