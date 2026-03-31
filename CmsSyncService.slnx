@@ -1,10 +1,12 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/CmsSyncService.Api/CmsSyncService.Api.csproj" />
+    <Project Path="src/CmsSyncService.Application/CmsSyncService.Application.csproj" />
     <Project Path="src/CmsSyncService.Domain/CmsSyncService.Domain.csproj" />
     <Project Path="src/CmsSyncService.Infrastructure/CmsSyncService.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/CmsSyncService.Api.Tests/CmsSyncService.Api.Tests.csproj" />
+    <Project Path="tests/CmsSyncService.IntegrationTests/CmsSyncService.IntegrationTests.csproj" />
+    <Project Path="tests/CmsSyncService.UnitTests/CmsSyncService.UnitTests.csproj" />
   </Folder>
 </Solution>

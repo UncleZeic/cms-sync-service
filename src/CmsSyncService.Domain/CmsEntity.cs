@@ -1,3 +1,5 @@
+using System;
+
 namespace CmsSyncService.Domain
 {
     public class CmsEntity
