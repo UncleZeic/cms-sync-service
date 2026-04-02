@@ -16,14 +16,15 @@ public class CmsEntityRepository : ICmsEntityRepository
     public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _dbContext.CmsEntities
+            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
 
-    public async Task<List<CmsEntity>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        return await _dbContext.CmsEntities.ToListAsync(cancellationToken);
-    }
+    public async Task<List<CmsEntity>> GetAllAsync(CancellationToken cancellationToken = default) => await _dbContext.CmsEntities
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
 
     public async Task AddAsync(CmsEntity entity, CancellationToken cancellationToken = default)
     {
