@@ -7,7 +7,7 @@ builder.Services.AddControllers();
 
 // Dependency Injection registration
 builder.Services.AddDbContext<CmsSyncService.Infrastructure.Persistence.CmsSyncDbContext>(options =>
-	options.UseInMemoryDatabase("AppDb"));
+	options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<CmsSyncService.Application.Services.ICmsEventApplicationService, CmsSyncService.Application.Services.CmsEventApplicationService>();
 builder.Services.AddScoped<CmsSyncService.Application.Repositories.ICmsEntityRepository, CmsSyncService.Infrastructure.Persistence.CmsEntityRepository>();
 
