@@ -1,6 +1,7 @@
 
 using CmsSyncService.Application.DTOs;
 using CmsSyncService.Application.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CmsSyncService.Api.Controllers
