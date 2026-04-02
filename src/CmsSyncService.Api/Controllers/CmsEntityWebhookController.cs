@@ -1,8 +1,12 @@
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using CmsSyncService.Domain;
+using CmsSyncService.Application.DTOs;
+using CmsSyncService.Application.Repositories;
 using Microsoft.AspNetCore.Authorization;
 
 namespace CmsSyncService.Api.Controllers
@@ -11,16 +15,28 @@ namespace CmsSyncService.Api.Controllers
     [Route("cms/entities")]
     public class CmsEntityWebhookController : ControllerBase
     {
-        [HttpGet]
-        public ActionResult<IEnumerable<CmsEntity>> GetAll()
+        private readonly ICmsEntityRepository _repository;
+
+        public CmsEntityWebhookController(ICmsEntityRepository repository)
         {
-            throw new NotImplementedException("GetAll is not implemented yet.");
+            _repository = repository;
         }
 
-        [HttpGet("{id:guid}")]
-        public ActionResult<CmsEntity> GetById(Guid id)
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<CmsEntityDto>>> GetAll(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException("GetById is not implemented yet.");
+            var entities = await _repository.GetAllAsync(cancellationToken);
+            return entities.Select(e => e.ToDto()).ToList();
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<CmsEntityDto>> GetById(string id, CancellationToken cancellationToken)
+        {
+            var entity = await _repository.GetByIdAsync(id, cancellationToken);
+            if (entity == null)
+                return NotFound();
+            return entity.ToDto();
         }
     }
 }

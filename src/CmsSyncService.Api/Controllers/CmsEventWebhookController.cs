@@ -1,3 +1,6 @@
+
+using CmsSyncService.Application.DTOs;
+using CmsSyncService.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CmsSyncService.Api.Controllers
@@ -6,10 +9,21 @@ namespace CmsSyncService.Api.Controllers
     [Route("cms/events")]
     public class CmsEventWebhookController : ControllerBase
     {
-        [HttpPost("")]
-        public IActionResult IngestEvents()
+        private readonly ICmsEventApplicationService _service;
+
+        public CmsEventWebhookController(ICmsEventApplicationService service)
         {
-            throw new NotImplementedException("Webhook endpoint not implemented yet.");
+            _service = service;
+        }
+
+        [HttpPost("")]
+        public async Task<IActionResult> IngestEvents([FromBody] List<CmsEventDto> events, CancellationToken cancellationToken)
+        {
+            if (events == null || events.Count == 0)
+                return BadRequest("No events provided.");
+
+            await _service.ProcessBatchAsync(events, cancellationToken);
+            return Ok();
         }
     }
 }

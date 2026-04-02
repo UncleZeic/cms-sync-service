@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Core Test (IntegrationTests)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/tests/CmsSyncService.IntegrationTests/bin/Debug/net9.0/CmsSyncService.IntegrationTests.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/tests/CmsSyncService.IntegrationTests",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "justMyCode": false
+    }
+  ]
+}

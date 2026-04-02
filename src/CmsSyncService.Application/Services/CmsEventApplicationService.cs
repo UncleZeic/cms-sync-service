@@ -4,7 +4,7 @@ using CmsSyncService.Domain;
 
 namespace CmsSyncService.Application.Services;
 
-public class CmsEventApplicationService
+public class CmsEventApplicationService : ICmsEventApplicationService
 {
     private readonly ICmsEntityRepository _cmsEntityRepository;
 

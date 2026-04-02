@@ -6,7 +6,7 @@ public class CmsEntity
 {
     public string Id { get; private set; } = string.Empty;
 
-    public string LatestPayloadJson { get; private set; } = string.Empty;
+    public string Payload { get; private set; } = string.Empty;
 
     public int Version { get; private set; }
 
@@ -28,7 +28,7 @@ public class CmsEntity
         return new CmsEntity
         {
             Id = cmsEvent.Id,
-            LatestPayloadJson = cmsEvent.Payload ?? "{}",
+            Payload = cmsEvent.Payload ?? "{}",
             Version = cmsEvent.Version!.Value,
             Published = true,
             AdminDisabled = false,
@@ -43,7 +43,7 @@ public class CmsEntity
         return new CmsEntity
         {
             Id = cmsEvent.Id,
-            LatestPayloadJson = cmsEvent.Payload ?? "{}",
+            Payload = cmsEvent.Payload ?? "{}",
             Version = cmsEvent.Version!.Value,
             Published = false,
             AdminDisabled = false,
@@ -62,7 +62,7 @@ public class CmsEntity
             return;
         }
 
-        LatestPayloadJson = cmsEvent.Payload ?? "{}";
+        Payload = cmsEvent.Payload ?? "{}";
         Version = version;
         Published = true;
         UpdatedAtUtc = cmsEvent.Timestamp;
@@ -79,7 +79,7 @@ public class CmsEntity
             return;
         }
 
-        LatestPayloadJson = cmsEvent.Payload ?? "{}";
+        Payload = cmsEvent.Payload ?? "{}";
         Version = version;
         Published = false;
         UpdatedAtUtc = cmsEvent.Timestamp;

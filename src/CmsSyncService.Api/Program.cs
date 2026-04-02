@@ -1,6 +1,15 @@
+
+using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+
+// Dependency Injection registration
+builder.Services.AddDbContext<CmsSyncService.Infrastructure.Persistence.CmsSyncDbContext>(options =>
+	options.UseInMemoryDatabase("AppDb"));
+builder.Services.AddScoped<CmsSyncService.Application.Services.ICmsEventApplicationService, CmsSyncService.Application.Services.CmsEventApplicationService>();
+builder.Services.AddScoped<CmsSyncService.Application.Repositories.ICmsEntityRepository, CmsSyncService.Infrastructure.Persistence.CmsEntityRepository>();
 
 var app = builder.Build();
 
