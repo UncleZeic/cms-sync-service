@@ -6,18 +6,32 @@ using System.Threading.Tasks;
 using Xunit;
 using Moq;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using CmsSyncService.Application.Repositories;
 
 namespace CmsSyncService.UnitTests.Application.Services;
 
 public class CmsEventApplicationServiceTests
 {
+
     [Fact]
-    public async Task ProcessBatchAsync_EmptyList_DoesNotThrow()
+    public async Task ProcessBatchAsync_LogsInformation()
     {
-        var service = new Mock<ICmsEventApplicationService>();
+        var repoMock = new Mock<ICmsEntityRepository>();
+        var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
+        var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object);
         var events = new List<CmsEventDto>();
-        var exception = await Record.ExceptionAsync(() => service.Object.ProcessBatchAsync(events, CancellationToken.None));
-        Assert.Null(exception);
+
+        await service.ProcessBatchAsync(events, CancellationToken.None);
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Processing batch of")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
     }
 
     [Fact]

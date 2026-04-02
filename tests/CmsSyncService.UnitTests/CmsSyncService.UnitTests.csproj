@@ -16,12 +16,15 @@
   </ItemGroup>
 
   <ItemGroup>
+      <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CmsSyncService.Application\CmsSyncService.Application.csproj" />
     <ProjectReference Include="..\..\src\CmsSyncService.Domain\CmsSyncService.Domain.csproj" />
+    <ProjectReference Include="..\..\src\CmsSyncService.Infrastructure\CmsSyncService.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

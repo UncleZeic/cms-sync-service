@@ -20,7 +20,7 @@ public class CmsEntityTests
         var entity = CmsEntity.CreatePublished(cmsEvent);
 
         Assert.Equal("entity-1", entity.Id);
-        Assert.Equal("{\"title\":\"test\"}", entity.LatestPayloadJson);
+        Assert.Equal("{\"title\":\"test\"}", entity.Payload);
         Assert.Equal(2, entity.Version);
         Assert.True(entity.Published);
         Assert.False(entity.AdminDisabled);
@@ -41,7 +41,7 @@ public class CmsEntityTests
         var entity = CmsEntity.CreateUnpublished(cmsEvent);
 
         Assert.Equal("entity-2", entity.Id);
-        Assert.Equal("{\"title\":\"unpub\"}", entity.LatestPayloadJson);
+        Assert.Equal("{\"title\":\"unpub\"}", entity.Payload);
         Assert.Equal(3, entity.Version);
         Assert.False(entity.Published);
         Assert.False(entity.AdminDisabled);
@@ -70,7 +70,7 @@ public class CmsEntityTests
 
         entity.ApplyPublish(newEvent);
 
-        Assert.Equal("{\"title\":\"new\"}", entity.LatestPayloadJson);
+        Assert.Equal("{\"title\":\"new\"}", entity.Payload);
         Assert.Equal(2, entity.Version);
         Assert.True(entity.Published);
         Assert.Equal(newEvent.Timestamp, entity.UpdatedAtUtc);
@@ -98,7 +98,7 @@ public class CmsEntityTests
 
         entity.ApplyUnpublish(newEvent);
 
-        Assert.Equal("{\"title\":\"new\"}", entity.LatestPayloadJson);
+        Assert.Equal("{\"title\":\"new\"}", entity.Payload);
         Assert.Equal(2, entity.Version);
         Assert.False(entity.Published);
         Assert.Equal(newEvent.Timestamp, entity.UpdatedAtUtc);
