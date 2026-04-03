@@ -14,21 +14,28 @@ namespace CmsSyncService.Api.Tests;
 public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
+    private static bool _dbSeeded = false;
+    private static readonly object _seedLock = new();
 
     public CmsEntityControllerTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory;
-    }
-
-    private async Task SeedDbAsync()
-    {
-        using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();
-
-        // Apply migrations to ensure schema is up to daterun
-        await dbContext.Database.MigrateAsync();
-        await CmsEntityDbSeeder.ClearAsync(dbContext);
-        await CmsEntityDbSeeder.SeedAsync(dbContext);
+        // Seed the DB only once for all tests
+        if (!_dbSeeded)
+        {
+            lock (_seedLock)
+            {
+                if (!_dbSeeded)
+                {
+                    using var scope = _factory.Services.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();
+                    dbContext.Database.Migrate();
+                    CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
+                    CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
+                    _dbSeeded = true;
+                }
+            }
+        }
     }
 
     private static void AddBasicAuthHeader(HttpClient client)
@@ -41,25 +48,54 @@ public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Prog
     [Fact]
     public async Task GetAll()
     {
-        await SeedDbAsync();
         var client = _factory.CreateClient();
         AddBasicAuthHeader(client);
-        // ...existing code...
         var response = await client.GetAsync("/cms/entities");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var entities = await response.Content.ReadFromJsonAsync<dynamic[]>();
         Assert.NotNull(entities);
-        Assert.True(entities.Length >= 2);
+        // Should get only the 2 published entities (not the 1 unpublished)
+        Assert.Equal(2, entities.Length);
+    }
+
+    [Fact]
+    public async Task GetAll_AsAdmin_GetsAllEntities()
+    {
+        var client = _factory.CreateClient();
+        // Admin credentials (from README.md)
+        var credentials = "admin:7FDD33AD-3FD3-41B8-AC05-5A9122ABC086";
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var response = await client.GetAsync("/cms/entities");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var entities = await response.Content.ReadFromJsonAsync<dynamic[]>();
+        Assert.NotNull(entities);
+        // Should get all 3 entities (2 published, 1 unpublished)
+        Assert.Equal(3, entities.Length);
+    }
+
+    [Fact]
+    public async Task GetAll_AsViewer_GetsOnlyPublishedEntities()
+    {
+        var client = _factory.CreateClient();
+        // Viewer credentials
+        var credentials = "viewer:DD888324-9217-41D1-85D9-20D844090106";
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var response = await client.GetAsync("/cms/entities");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var entities = await response.Content.ReadFromJsonAsync<dynamic[]>();
+        Assert.NotNull(entities);
+        // Should get only the 2 published entities
+        Assert.Equal(2, entities.Length);
     }
 
     [Fact]
     public async Task GetById()
     {
-        await SeedDbAsync();
         var client = _factory.CreateClient();
         AddBasicAuthHeader(client);
         var entity = CmsEntityDbSeeder.SeedEntities[0];
-        // ...existing code...
         var response = await client.GetAsync($"/cms/entities/{entity.Id}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -67,7 +103,6 @@ public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Prog
     [Fact]
     public async Task CmsEntityController_RejectsUnauthorizedUser()
     {
-        await SeedDbAsync();
         var client = _factory.CreateClient();
         // Use eventuser credentials (should not have EntityViewer/Admin role)
         var credentials = "eventuser:9A01D9BF-A5B5-45D4-BE41-618B0F11D6CF";
@@ -80,7 +115,6 @@ public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Prog
     [Fact]
     public async Task CmsEntityController_RejectsInvalidPassword()
     {
-        await SeedDbAsync();
         var client = _factory.CreateClient();
         // Use wrong password for viewer
         var credentials = "viewer:wrongpassword";

@@ -8,6 +8,7 @@ using Xunit;
 
 namespace CmsSyncService.Api.Tests;
 
+[Collection("DbWriteTests")]
 public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -260,3 +261,6 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
+
+[CollectionDefinition("DbWriteTests", DisableParallelization = true)]
+public class DbWriteTestsCollection : ICollectionFixture<object> { }

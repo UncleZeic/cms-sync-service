@@ -31,8 +31,16 @@ namespace CmsSyncService.Api.Controllers
             try
             {
                 var entities = await _repository.GetAllAsync(cancellationToken);
-                var dtos = entities.Select(e => e.ToDto()).ToList();
-                return Ok(dtos);
+                IEnumerable<CmsEntityDto> dtos;
+                if (User.IsInRole("Admin"))
+                {
+                    dtos = entities.Select(e => e.ToDto());
+                }
+                else
+                {
+                    dtos = entities.Where(e => e.Published).Select(e => e.ToDto());
+                }
+                return Ok(dtos.ToList());
             }
             catch (Exception ex)
             {

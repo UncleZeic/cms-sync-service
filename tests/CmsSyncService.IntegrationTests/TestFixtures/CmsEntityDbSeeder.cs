@@ -27,7 +27,7 @@ namespace CmsSyncService.Api.Tests.TestFixtures
             };
             var entity1 = CmsSyncService.Domain.CmsEntity.CreatePublished(event1);
 
-            var event2 = new CmsSyncService.Domain.CmsEvent
+            var event2 = new CmsSyncService.Domain.CmsEvent 
             {
                 Id = Guid.NewGuid().ToString(),
                 Payload = "{\"foo\":\"bar2\"}",
@@ -36,11 +36,21 @@ namespace CmsSyncService.Api.Tests.TestFixtures
             };
             var entity2 = CmsSyncService.Domain.CmsEntity.CreatePublished(event2);
 
+            var event3 = new CmsSyncService.Domain.CmsEvent
+            {
+                Id = Guid.NewGuid().ToString(),
+                Payload = "{\"foo\":\"bar3\"}",
+                Version = 3,
+                Timestamp = DateTimeOffset.UtcNow
+            };
+            var entity3 = CmsSyncService.Domain.CmsEntity.CreateUnpublished(event3);
+
             SeedEntities.Clear();
             SeedEntities.Add(entity1);
             SeedEntities.Add(entity2);
+            SeedEntities.Add(entity3);
 
-            dbContext.CmsEntities.AddRange(entity1, entity2);
+            dbContext.CmsEntities.AddRange(entity1, entity2, entity3);
             await dbContext.SaveChangesAsync();
         }
     }
