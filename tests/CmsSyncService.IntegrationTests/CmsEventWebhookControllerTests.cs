@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -16,10 +17,18 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         _factory = factory;
     }
 
+    private static void AddBasicAuthHeader(HttpClient client)
+    {
+        var credentials = "admin:7FDD33AD-3FD3-41B8-AC05-5A9122ABC086";
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
+    }
+
     [Fact]
     public async Task IngestEventsPostWebhook_MissingType_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
         var events = new[]
         {
             new {
@@ -33,13 +42,23 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         var json = JsonSerializer.Serialize(events);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/cms/events", content);
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        try
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        }
+        catch
+        {
+            Console.WriteLine($"Test failed. Response body: {body}");
+            throw;
+        }
     }
 
     [Fact]
     public async Task IngestEventsPostWebhook_InvalidType_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
         var events = new[]
         {
             new {
@@ -60,6 +79,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
     public async Task IngestEventsPostWebhook_MissingPayload_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
         var events = new[]
         {
             new {
@@ -80,6 +100,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
     public async Task IngestEventsPostWebhook_MissingVersion_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
         var events = new[]
         {
             new {
@@ -100,6 +121,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
     public async Task IngestEventsPostWebhook_Publish_Succeeds()
     {
         var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
         var events = new[]
         {
             new {
@@ -120,6 +142,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
     public async Task IngestEventsPostWebhook_Unpublish_Succeeds()
     {
         var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
         // First publish
         var publishEvents = new[]
         {
@@ -157,6 +180,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
     public async Task IngestEventsPostWebhook_Delete_Succeeds()
     {
         var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
         // First publish
         var publishEvents = new[]
         {
@@ -186,5 +210,53 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         var deleteContent = new StringContent(deleteJson, Encoding.UTF8, "application/json");
         var deleteResponse = await client.PostAsync("/cms/events", deleteContent);
         Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CmsEventWebhookController_RejectsUnauthorizedUser()
+    {
+        var client = _factory.CreateClient();
+        // Use viewer credentials (should not have EventUpdater/Admin role)
+        var credentials = "viewer:DD888324-9217-41D1-85D9-20D844090106";
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var events = new[]
+        {
+            new {
+                type = "publish",
+                id = "test-entity-1",
+                payload = new { foo = "bar" },
+                version = 1,
+                timestamp = DateTimeOffset.Parse("2026-04-01T12:00:00Z")
+            }
+        };
+        var json = JsonSerializer.Serialize(events);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/cms/events", content);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CmsEventWebhookController_RejectsInvalidPassword()
+    {
+        var client = _factory.CreateClient();
+        // Use wrong password for admin
+        var credentials = "admin:wrongpassword";
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var events = new[]
+        {
+            new {
+                type = "publish",
+                id = "test-entity-1",
+                payload = new { foo = "bar" },
+                version = 1,
+                timestamp = DateTimeOffset.Parse("2026-04-01T12:00:00Z")
+            }
+        };
+        var json = JsonSerializer.Serialize(events);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/cms/events", content);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

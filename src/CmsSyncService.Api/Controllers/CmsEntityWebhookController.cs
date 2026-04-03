@@ -13,6 +13,7 @@ namespace CmsSyncService.Api.Controllers
 {
     [ApiController]
     [Route("cms/entities")]
+    [Authorize(Roles = "Admin,EntityViewer")]
     public class CmsEntityWebhookController : ControllerBase
     {
         private readonly ICmsEntityRepository _repository;
@@ -36,7 +37,7 @@ namespace CmsSyncService.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetAll");
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                throw;
             }
         }
 
@@ -54,7 +55,7 @@ namespace CmsSyncService.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error in GetById for id {id}");
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                throw;
             }
         }
     }

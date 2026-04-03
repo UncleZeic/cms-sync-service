@@ -1,22 +1,31 @@
 
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using CmsSyncService.Application.Repositories;
+using CmsSyncService.Application.Services;
+using CmsSyncService.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddAuthentication("BasicAuthentication").AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
+builder.Services.AddAuthentication(options =>
+{
+	options.DefaultAuthenticateScheme = "BasicAuthentication";
+	options.DefaultChallengeScheme = "BasicAuthentication";
+}).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
 
 // Dependency Injection registration
-builder.Services.AddDbContext<CmsSyncService.Infrastructure.Persistence.CmsSyncDbContext>(options =>
+builder.Services.AddDbContext<CmsSyncDbContext>(options =>
 	options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<CmsSyncService.Application.Services.ICmsEventApplicationService, CmsSyncService.Application.Services.CmsEventApplicationService>();
-builder.Services.AddScoped<CmsSyncService.Application.Repositories.ICmsEntityRepository, CmsSyncService.Infrastructure.Persistence.CmsEntityRepository>();
+builder.Services.AddScoped<ICmsEventApplicationService, CmsEventApplicationService>();
+builder.Services.AddScoped<ICmsEntityRepository, CmsEntityRepository>();
 
 var app = builder.Build();
 
 app.UseAuthentication();
-app.MapGet("/health", [Microsoft.AspNetCore.Authorization.AllowAnonymous] () => Results.Text("Healthy"));
+app.UseAuthorization();
+app.MapGet("/health", [AllowAnonymous] () => Results.Text("Healthy"));
 app.MapControllers();
 app.Run();
 

@@ -8,23 +8,34 @@ namespace CmsSyncService.Api.Controllers
 {
     [ApiController]
     [Route("cms/events")]
+    [Authorize(Roles = "Admin,EventUpdater")]
     public class CmsEventWebhookController : ControllerBase
     {
         private readonly ICmsEventApplicationService _service;
+        private readonly ILogger<CmsEventWebhookController> _logger;
 
-        public CmsEventWebhookController(ICmsEventApplicationService service)
+        public CmsEventWebhookController(ICmsEventApplicationService service, ILogger<CmsEventWebhookController> logger)
         {
             _service = service;
+            _logger = logger;
         }
 
         [HttpPost("")]
         public async Task<IActionResult> IngestEvents([FromBody] List<CmsEventDto> events, CancellationToken cancellationToken)
         {
-            if (events == null || events.Count == 0)
-                return BadRequest("No events provided.");
+            try
+            {
+                if (events == null || events.Count == 0)
+                    return BadRequest("No events provided.");
 
-            await _service.ProcessBatchAsync(events, cancellationToken);
-            return Ok();
+                await _service.ProcessBatchAsync(events, cancellationToken);
+                return Ok();
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error in IngestEvents");
+                throw;
+            }
         }
     }
 }
