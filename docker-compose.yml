@@ -1,15 +1,48 @@
-version: '3.8'
 services:
+  migrate:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    working_dir: /src
+    volumes:
+      - .:/src
+    environment:
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword
+      PATH: /root/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    command: >
+      sh -c " dotnet tool install --global dotnet-ef --version 10.0 && export PATH=$PATH:/root/.dotnet/tools && dotnet restore src/CmsSyncService.Api/CmsSyncService.Api.csproj && dotnet ef database update --project src/CmsSyncService.Infrastructure --startup-project src/CmsSyncService.Api"
+
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cmssyncservice-api
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword
+    depends_on:
+      db:
+        condition: service_healthy
   db:
     image: postgres:16
-    restart: always
+    container_name: cmssyncservice-db
+    restart: unless-stopped
     environment:
+      POSTGRES_DB: cmssync
       POSTGRES_USER: cmsuser
       POSTGRES_PASSWORD: cmspassword
-      POSTGRES_DB: cmssync
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmsuser -d cmssync"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 volumes:
-  pgdata:
+  postgres_data:

@@ -16,27 +16,46 @@ namespace CmsSyncService.Api.Controllers
     public class CmsEntityWebhookController : ControllerBase
     {
         private readonly ICmsEntityRepository _repository;
+        private readonly ILogger<CmsEntityWebhookController> _logger;
 
-        public CmsEntityWebhookController(ICmsEntityRepository repository)
+        public CmsEntityWebhookController(ICmsEntityRepository repository, ILogger<CmsEntityWebhookController> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
-
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CmsEntityDto>>> GetAll(CancellationToken cancellationToken)
         {
-            var entities = await _repository.GetAllAsync(cancellationToken);
-            return entities.Select(e => e.ToDto()).ToList();
+            try
+            {
+                var entities = await _repository.GetAllAsync(cancellationToken);
+                var dtos = entities.Select(e => e.ToDto()).ToList();
+                return Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetAll");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<CmsEntityDto>> GetById(string id, CancellationToken cancellationToken)
         {
-            var entity = await _repository.GetByIdAsync(id, cancellationToken);
-            if (entity == null)
-                return NotFound();
-            return entity.ToDto();
+            try
+            {
+                var entity = await _repository.GetByIdAsync(id, cancellationToken);
+                if (entity == null)
+                    return NotFound();
+                var dto = entity.ToDto();
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in GetById for id {id}");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }
