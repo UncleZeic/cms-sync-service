@@ -13,18 +13,21 @@ public class CmsEntityRepository : ICmsEntityRepository
         _dbContext = dbContext;
     }
 
-    public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default, bool asNoTracking = false)
     {
-        return await _dbContext.CmsEntities
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var query = _dbContext.CmsEntities.AsQueryable();
+        if (asNoTracking)
+            query = query.AsNoTracking();
+        return await query.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-
-    public async Task<List<CmsEntity>> GetAllAsync(CancellationToken cancellationToken = default) => await _dbContext.CmsEntities
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-
+    public async Task<List<CmsEntity>> GetAllAsync(CancellationToken cancellationToken = default, bool asNoTracking = false)
+    {
+        var query = _dbContext.CmsEntities.AsQueryable();
+        if (asNoTracking)
+            query = query.AsNoTracking();
+        return await query.ToListAsync(cancellationToken);
+    }
 
     public async Task AddAsync(CmsEntity entity, CancellationToken cancellationToken = default)
     {

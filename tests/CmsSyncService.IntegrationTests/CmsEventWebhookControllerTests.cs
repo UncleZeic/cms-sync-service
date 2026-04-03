@@ -261,6 +261,3 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
-
-[CollectionDefinition("DbWriteTests", DisableParallelization = true)]
-public class DbWriteTestsCollection : ICollectionFixture<object> { }

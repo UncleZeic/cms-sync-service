@@ -85,10 +85,9 @@ public class CmsEntity
         UpdatedAtUtc = cmsEvent.Timestamp;
     }
 
-    public void SetAdminDisabled(bool disabled, DateTimeOffset timestampUtc)
+    public void SetAdminDisabled(bool value)
     {
-        AdminDisabled = disabled;
-        UpdatedAtUtc = timestampUtc;
+        AdminDisabled = value;
     }
 
     public bool IsVisibleToNormalUser()

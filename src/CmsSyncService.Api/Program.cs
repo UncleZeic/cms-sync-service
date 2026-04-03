@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +19,7 @@ builder.Services.AddDbContext<CmsSyncDbContext>(options =>
 	options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ICmsEventApplicationService, CmsEventApplicationService>();
 builder.Services.AddScoped<ICmsEntityRepository, CmsEntityRepository>();
+builder.Services.AddScoped<ICmsEntityAdminService, CmsEntityAdminService>();
 
 var app = builder.Build();
 

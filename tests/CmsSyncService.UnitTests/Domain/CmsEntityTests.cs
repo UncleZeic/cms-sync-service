@@ -105,7 +105,7 @@ public class CmsEntityTests
     }
 
     [Fact]
-    public void SetAdminDisabled_UpdatesFlagAndTimestamp()
+    public void SetAdminDisabled_OnlyUpdatesFlag()
     {
         var entity = CmsEntity.CreatePublished(new CmsEvent
         {
@@ -114,10 +114,13 @@ public class CmsEntityTests
             Version = 1,
             Timestamp = DateTimeOffset.UtcNow
         });
-        var ts = DateTimeOffset.UtcNow.AddMinutes(5);
-        entity.SetAdminDisabled(true, ts);
+        var originalTimestamp = entity.UpdatedAtUtc;
+        entity.SetAdminDisabled(true);
         Assert.True(entity.AdminDisabled);
-        Assert.Equal(ts, entity.UpdatedAtUtc);
+        Assert.Equal(originalTimestamp, entity.UpdatedAtUtc);
+        entity.SetAdminDisabled(false);
+        Assert.False(entity.AdminDisabled);
+        Assert.Equal(originalTimestamp, entity.UpdatedAtUtc);
     }
 
     [Fact]
@@ -131,9 +134,9 @@ public class CmsEntityTests
             Timestamp = DateTimeOffset.UtcNow
         });
         Assert.True(entity.IsVisibleToNormalUser());
-        entity.SetAdminDisabled(true, DateTimeOffset.UtcNow);
+        entity.SetAdminDisabled(true);
         Assert.False(entity.IsVisibleToNormalUser());
-        entity.SetAdminDisabled(false, DateTimeOffset.UtcNow);
+        entity.SetAdminDisabled(false);
         entity.ApplyUnpublish(new CmsEvent
         {
             Id = "entity-6",
