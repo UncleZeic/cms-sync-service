@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.Services;
 using CmsSyncService.Infrastructure.Persistence;
+using CmsSyncService.Application.Caching;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,8 @@ builder.Services.AddAuthentication(options =>
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
 	builder.Services.AddMemoryCache();
+builder.Services.Configure<CacheDurations>(builder.Configuration.GetSection("CacheDurations"));
+builder.Services.AddScoped<IEntityCacheService, EntityCacheService>();
 
 // Dependency Injection registration
 builder.Services.AddDbContext<CmsSyncDbContext>(options =>

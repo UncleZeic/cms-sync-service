@@ -8,7 +8,7 @@ using CmsSyncService.Application.DTOs;
 using CmsSyncService.Application.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
+using CmsSyncService.Application.Caching;
 using CmsSyncService.Application.Services;
 
 namespace CmsSyncService.Api.Controllers
@@ -22,14 +22,14 @@ namespace CmsSyncService.Api.Controllers
         private readonly ICmsEntityRepository _repository;
         private readonly ILogger<CmsEntityWebhookController> _logger;
         private readonly ICmsEntityAdminService _adminService;
-        private readonly IMemoryCache _cache;
+        private readonly IEntityCacheService _cacheService;
 
-        public CmsEntityWebhookController(ICmsEntityRepository repository, ILogger<CmsEntityWebhookController> logger, ICmsEntityAdminService adminService, IMemoryCache cache)
+        public CmsEntityWebhookController(ICmsEntityRepository repository, ILogger<CmsEntityWebhookController> logger, ICmsEntityAdminService adminService, IEntityCacheService cacheService)
         {
             _repository = repository;
             _logger = logger;
             _adminService = adminService;
-            _cache = cache;
+            _cacheService = cacheService;
         }
 
         [HttpGet]
@@ -37,8 +37,9 @@ namespace CmsSyncService.Api.Controllers
         {
             try
             {
-                string cacheKey = User.IsInRole("Admin") ? "entities_admin" : "entities_viewer";
-                if (!_cache.TryGetValue(cacheKey, out var dtosObj) || dtosObj is not List<ICmsEntityDto> dtos)
+                string cacheKey = EntityCacheKeys.GetEntityListKey(User.IsInRole("Admin"));
+                var dtos = _cacheService.Get<List<ICmsEntityDto>>(cacheKey);
+                if (dtos == null)
                 {
                     var entities = await _repository.GetAllAsync(cancellationToken);
                     if (User.IsInRole("Admin"))
@@ -49,7 +50,7 @@ namespace CmsSyncService.Api.Controllers
                     {
                         dtos = entities.Where(e => e.Published).Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
                     }
-                    _cache.Set(cacheKey, dtos, TimeSpan.FromMinutes(5));
+                    _cacheService.Set(cacheKey, dtos);
                 }
                 return Ok(dtos);
             }
@@ -65,8 +66,9 @@ namespace CmsSyncService.Api.Controllers
         {
             try
             {
-                string cacheKey = User.IsInRole("Admin") ? $"entity_admin_{id}" : $"entity_viewer_{id}";
-                if (!_cache.TryGetValue(cacheKey, out var dtoObj) || dtoObj is not ICmsEntityDto dto)
+                string cacheKey = EntityCacheKeys.GetEntityKey(id, User.IsInRole("Admin"));
+                var dto = _cacheService.Get<ICmsEntityDto>(cacheKey);
+                if (dto == null)
                 {
                     var entity = await _repository.GetByIdAsync(id, cancellationToken);
                     if (entity == null)
@@ -79,7 +81,7 @@ namespace CmsSyncService.Api.Controllers
                     {
                         dto = entity.ToDto();
                     }
-                    _cache.Set(cacheKey, dto, TimeSpan.FromMinutes(5));
+                    _cacheService.Set(cacheKey, dto);
                 }
                 return Ok(dto);
             }
@@ -100,11 +102,11 @@ namespace CmsSyncService.Api.Controllers
                 if (!result)
                     return NotFound();
                 // Invalidate entity list caches for both admin and viewer
-                _cache.Remove("entities_admin");
-                _cache.Remove("entities_viewer");
+                _cacheService.Remove(EntityCacheKeys.GetEntityListKey(true));
+                _cacheService.Remove(EntityCacheKeys.GetEntityListKey(false));
                 // Also invalidate this entity's cache
-                _cache.Remove($"entity_admin_{id}");
-                _cache.Remove($"entity_viewer_{id}");
+                _cacheService.Remove(EntityCacheKeys.GetEntityKey(id, true));
+                _cacheService.Remove(EntityCacheKeys.GetEntityKey(id, false));
                 return Ok();
             }
             catch (Exception ex)
