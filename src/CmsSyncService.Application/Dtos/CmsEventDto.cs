@@ -101,7 +101,7 @@ public sealed class CmsEventDto : IValidatableObject
         };
     }
 
-    internal CmsEvent ToDomain()
+    public CmsEvent ToDomain()
     {
         return new CmsEvent
         {
