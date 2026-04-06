@@ -7,6 +7,7 @@ using Xunit;
 using Moq;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 using CmsSyncService.Application.Repositories;
 
 namespace CmsSyncService.UnitTests.Application.Services;
@@ -19,7 +20,8 @@ public class CmsEventApplicationServiceTests
     {
         var repoMock = new Mock<ICmsEntityRepository>();
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
-        var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object);
+        var cacheMock = new Mock<IMemoryCache>();
+        var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
         var events = new List<CmsEventDto>();
 
         await service.ProcessBatchAsync(events, CancellationToken.None);

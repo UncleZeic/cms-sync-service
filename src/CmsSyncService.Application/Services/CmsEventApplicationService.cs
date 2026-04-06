@@ -1,7 +1,9 @@
 using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.DTOs;
 using CmsSyncService.Domain;
+
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CmsSyncService.Application.Services;
 
@@ -9,11 +11,13 @@ public class CmsEventApplicationService : ICmsEventApplicationService
 {
     private readonly ICmsEntityRepository _cmsEntityRepository;
     private readonly ILogger<CmsEventApplicationService> _logger;
+    private readonly IMemoryCache _cache;
 
-    public CmsEventApplicationService(ICmsEntityRepository cmsEntityRepository, ILogger<CmsEventApplicationService> logger)
+    public CmsEventApplicationService(ICmsEntityRepository cmsEntityRepository, ILogger<CmsEventApplicationService> logger, IMemoryCache cache)
     {
         _cmsEntityRepository = cmsEntityRepository;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task ProcessBatchAsync(IEnumerable<CmsEventDto> events, CancellationToken cancellationToken = default)
@@ -23,6 +27,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
         int processed = 0, skipped = 0, validationFailed = 0, versionConflict = 0;
         _logger.LogInformation("Processing batch of {Count} CMS events", total);
 
+        var affectedIds = new HashSet<string>();
         foreach (var dto in events)
         {
             // Validate DTO
@@ -53,6 +58,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                         _logger.LogInformation("Deleting entity with Id: {Id}", cmsEvent.Id);
                         _cmsEntityRepository.Remove(existingEntity);
                         processed++;
+                        affectedIds.Add(cmsEvent.Id);
                     }
                     else
                     {
@@ -68,6 +74,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                         var newEntity = CmsEntity.CreatePublished(cmsEvent);
                         await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
                         processed++;
+                        affectedIds.Add(cmsEvent.Id);
                     }
                     else if (cmsEvent.Version < existingEntity.Version)
                     {
@@ -80,6 +87,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                         _logger.LogInformation("Updating published entity with Id: {Id}", cmsEvent.Id);
                         existingEntity.ApplyPublish(cmsEvent);
                         processed++;
+                        affectedIds.Add(cmsEvent.Id);
                     }
                     break;
 
@@ -91,6 +99,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                         var newEntity = CmsEntity.CreateUnpublished(cmsEvent);
                         await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
                         processed++;
+                        affectedIds.Add(cmsEvent.Id);
                     }
                     else if (cmsEvent.Version < existingEntity.Version)
                     {
@@ -103,6 +112,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                         _logger.LogInformation("Updating unpublished entity with Id: {Id}", cmsEvent.Id);
                         existingEntity.ApplyUnpublish(cmsEvent);
                         processed++;
+                        affectedIds.Add(cmsEvent.Id);
                     }
                     break;
 
@@ -117,5 +127,14 @@ public class CmsEventApplicationService : ICmsEventApplicationService
             total, processed, skipped, validationFailed, versionConflict);
         _logger.LogInformation("Saving changes after processing batch");
         await _cmsEntityRepository.SaveChangesAsync(cancellationToken);
+
+        // Invalidate cache for affected entities and entity lists
+        _cache.Remove("entities_admin");
+        _cache.Remove("entities_viewer");
+        foreach (var id in affectedIds)
+        {
+            _cache.Remove($"entity_admin_{id}");
+            _cache.Remove($"entity_viewer_{id}");
+        }
     }
 }

@@ -13,6 +13,7 @@ builder.Services.AddAuthentication(options =>
 	options.DefaultChallengeScheme = "BasicAuthentication";
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
+	builder.Services.AddMemoryCache();
 
 // Dependency Injection registration
 builder.Services.AddDbContext<CmsSyncDbContext>(options =>
