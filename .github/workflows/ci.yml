@@ -9,6 +9,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cmssync
+          POSTGRES_USER: cmsuser
+          POSTGRES_PASSWORD: cmspassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cmsuser -d cmssync"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
@@ -19,5 +33,9 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build --no-restore --configuration Release
-      - name: Test
-        run: dotnet test --no-build --verbosity normal --configuration Release
+      - name: Unit Tests
+        run: dotnet test --no-build --verbosity normal --configuration Release --filter "FullyQualifiedName!~IntegrationTests"
+      - name: Integration Tests
+        env:
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword
+        run: dotnet test --no-build --verbosity normal --configuration Release --filter "FullyQualifiedName~IntegrationTests"
