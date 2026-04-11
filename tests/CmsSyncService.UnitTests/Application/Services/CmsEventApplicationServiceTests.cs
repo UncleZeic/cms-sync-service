@@ -41,16 +41,6 @@ public class CmsEventApplicationServiceTests
     }
 
     [Fact]
-    public async Task ProcessBatchAsync_CallsImplementation()
-    {
-        var serviceMock = new Mock<ICmsEventApplicationService>();
-        var events = new List<CmsEventDto> { new CmsEventDto { Type = "publish", Id = "id", Version = 1, Timestamp = DateTimeOffset.UtcNow } };
-        serviceMock.Setup(s => s.ProcessBatchAsync(events, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask).Verifiable();
-        await serviceMock.Object.ProcessBatchAsync(events, CancellationToken.None);
-        serviceMock.Verify();
-    }
-
-    [Fact]
     public async Task ProcessBatchAsync_NullEvents_ThrowsArgumentNullException()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
