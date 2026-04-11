@@ -104,8 +104,8 @@ public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Prog
     public async Task CmsEntityController_RejectsUnauthorizedUser()
     {
         var client = _factory.CreateClient();
-        // Use eventuser credentials (should not have EntityViewer/Admin role)
-        var credentials = "eventuser:9A01D9BF-A5B5-45D4-BE41-618B0F11D6CF";
+        // Use cms-event-user credentials (should not have EntityViewer/Admin role)
+        var credentials = "cms-event-user:9A01D9BF-A5B5-45D4-BE41-618B0F11D6CF";
         var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
         var response = await client.GetAsync("/cms/entities");
