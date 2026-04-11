@@ -1,6 +1,7 @@
-using CmsSyncService.Application.Repositories;
-using CmsSyncService.Domain;
-using Microsoft.EntityFrameworkCore;
+
+    using CmsSyncService.Application.Repositories;
+    using CmsSyncService.Domain;
+    using Microsoft.EntityFrameworkCore;
 
 namespace CmsSyncService.Infrastructure.Persistence;
 
@@ -11,6 +12,14 @@ public class CmsEntityRepository : ICmsEntityRepository
     public CmsEntityRepository(CmsSyncDbContext dbContext)
     {
         _dbContext = dbContext;
+    }
+
+    public async Task<List<CmsEntity>> GetVisibleToNormalUserAsync(CancellationToken cancellationToken = default, bool asNoTracking = false)
+    {
+        var query = _dbContext.CmsEntities.AsQueryable();
+        if (asNoTracking)
+            query = query.AsNoTracking();
+        return await query.Where(e => e.Published && !e.AdminDisabled).ToListAsync(cancellationToken);
     }
 
     public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default, bool asNoTracking = false)
