@@ -41,14 +41,14 @@ namespace CmsSyncService.Api.Controllers
                 var dtos = _cacheService.Get<List<ICmsEntityDto>>(cacheKey);
                 if (dtos == null)
                 {
-                    var entities = await _repository.GetAllAsync(cancellationToken);
+                    var entities = await _repository.GetAllAsync(cancellationToken, true);
                     if (User.IsInRole("Admin"))
                     {
                         dtos = entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList();
                     }
                     else
                     {
-                        dtos = entities.Where(e => e.Published).Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
+                        dtos = entities.Where(e => e.IsVisibleToNormalUser()).Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
                     }
                     _cacheService.Set(cacheKey, dtos);
                 }
@@ -70,7 +70,7 @@ namespace CmsSyncService.Api.Controllers
                 var dto = _cacheService.Get<ICmsEntityDto>(cacheKey);
                 if (dto == null)
                 {
-                    var entity = await _repository.GetByIdAsync(id, cancellationToken);
+                    var entity = await _repository.GetByIdAsync(id, cancellationToken, true);
                     if (entity == null)
                         return NotFound();
                     if (User.IsInRole("Admin"))
