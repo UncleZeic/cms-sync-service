@@ -74,7 +74,7 @@ public class CmsEntity
 
         var version = cmsEvent.Version!.Value;
 
-        if (version < Version)
+        if (version <= Version)
         {
             return;
         }
