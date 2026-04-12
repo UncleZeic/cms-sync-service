@@ -29,12 +29,18 @@ public class CmsEntityRepository : ICmsEntityRepository
         _dbContext = dbContext;
     }
 
-    public async Task<List<CmsEntity>> GetVisibleToNormalUserAsync(CancellationToken cancellationToken = default, bool asNoTracking = false)
+
+    public async Task<List<CmsEntity>> GetVisibleToNormalUserAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default, bool asNoTracking = false)
     {
         var query = _dbContext.CmsEntities.AsQueryable();
         if (asNoTracking)
             query = query.AsNoTracking();
-        return await query.Where(e => e.Published && !e.AdminDisabled).ToListAsync(cancellationToken);
+        return await query.Where(e => e.Published && !e.AdminDisabled)
+            .OrderByDescending(e => e.UpdatedAtUtc)
+            .ThenBy(e => e.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default, bool asNoTracking = false)
@@ -45,12 +51,17 @@ public class CmsEntityRepository : ICmsEntityRepository
         return await query.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<List<CmsEntity>> GetAllAsync(CancellationToken cancellationToken = default, bool asNoTracking = false)
+    public async Task<List<CmsEntity>> GetAllAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default, bool asNoTracking = false)
     {
         var query = _dbContext.CmsEntities.AsQueryable();
         if (asNoTracking)
             query = query.AsNoTracking();
-        return await query.ToListAsync(cancellationToken);
+        return await query
+            .OrderByDescending(e => e.UpdatedAtUtc)
+            .ThenBy(e => e.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(CmsEntity entity, CancellationToken cancellationToken = default)

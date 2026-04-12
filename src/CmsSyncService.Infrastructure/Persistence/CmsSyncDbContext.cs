@@ -35,6 +35,8 @@ public class CmsSyncDbContext : DbContext
                 .IsRequired();
             // Composite index on Published, AdminDisabled
             entity.HasIndex(x => new { x.Published, x.AdminDisabled });
+            // Index for ordering by UpdatedAtUtc and Id
+            entity.HasIndex(x => new { x.UpdatedAtUtc, x.Id });
         });
     }
 }

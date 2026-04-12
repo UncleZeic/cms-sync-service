@@ -56,6 +56,20 @@ public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Prog
         Assert.NotNull(entities);
         // Should get only the 2 published entities (not the 1 unpublished)
         Assert.Equal(2, entities.Length);
+
+        // Test pagination: take=1
+        response = await client.GetAsync("/cms/entities?take=1");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        entities = await response.Content.ReadFromJsonAsync<dynamic[]>();
+        Assert.NotNull(entities);
+        Assert.Single(entities);
+
+        // Test pagination: skip=1, take=1
+        response = await client.GetAsync("/cms/entities?skip=1&take=1");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        entities = await response.Content.ReadFromJsonAsync<dynamic[]>();
+        Assert.NotNull(entities);
+        Assert.Single(entities);
     }
 
     [Fact]
@@ -72,6 +86,20 @@ public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Prog
         Assert.NotNull(entities);
         // Should get all 3 entities (2 published, 1 unpublished)
         Assert.Equal(3, entities.Length);
+
+        // Test pagination: take=2
+        response = await client.GetAsync("/cms/entities?take=2");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        entities = await response.Content.ReadFromJsonAsync<dynamic[]>();
+        Assert.NotNull(entities);
+        Assert.Equal(2, entities.Length);
+
+        // Test pagination: skip=2, take=2
+        response = await client.GetAsync("/cms/entities?skip=2&take=2");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        entities = await response.Content.ReadFromJsonAsync<dynamic[]>();
+        Assert.NotNull(entities);
+        Assert.Single(entities);
     }
 
     [Fact]

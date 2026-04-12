@@ -33,27 +33,23 @@ namespace CmsSyncService.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ICmsEntityDto>>> GetAll(CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<ICmsEntityDto>>> GetAll([FromQuery] int skip = 0, [FromQuery] int take = 100, CancellationToken cancellationToken = default)
         {
             try
             {
-                string cacheKey = EntityCacheKeys.GetEntityListKey(User.IsInRole("Admin"));
-                var dtos = _cacheService.Get<List<ICmsEntityDto>>(cacheKey);
-                if (dtos == null)
+                // Caching is not used for paged queries
+                if (User.IsInRole("Admin"))
                 {
-                    if (User.IsInRole("Admin"))
-                    {
-                        var entities = await _repository.GetAllAsync(cancellationToken, true);
-                        dtos = entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList();
-                    }
-                    else
-                    {
-                        var entities = await _repository.GetVisibleToNormalUserAsync(cancellationToken, true);
-                        dtos = entities.Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
-                    }
-                    _cacheService.Set(cacheKey, dtos);
+                    var entities = await _repository.GetAllAsync(skip, take, cancellationToken, true);
+                    var dtos = entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList();
+                    return Ok(dtos);
                 }
-                return Ok(dtos);
+                else
+                {
+                    var entities = await _repository.GetVisibleToNormalUserAsync(skip, take, cancellationToken, true);
+                    var dtos = entities.Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
+                    return Ok(dtos);
+                }
             }
             catch (Exception ex)
             {
