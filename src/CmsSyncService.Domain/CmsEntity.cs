@@ -56,32 +56,32 @@ public class CmsEntity
         ArgumentNullException.ThrowIfNull(cmsEvent);
 
         var version = cmsEvent.Version!.Value;
+        if (version < Version) return; // reject genuinely stale events
 
-        if (version < Version)
+        // Corner case: newer version means CMS modified without unpublishing first
+        if (version > Version)
         {
-            return;
+            Payload = cmsEvent.Payload ?? "{}";
+            Version = version;
         }
 
-        Payload = cmsEvent.Payload ?? "{}";
-        Version = version;
-        Published = true;
+        Published = true; // always mark published if version >= stored
         UpdatedAtUtc = cmsEvent.Timestamp;
     }
 
     public void ApplyUnpublish(CmsEvent cmsEvent)
     {
-        ArgumentNullException.ThrowIfNull(cmsEvent);
-
         var version = cmsEvent.Version!.Value;
+        if (version < Version) return; // reject genuinely stale events
 
-        if (version <= Version)
+        // Corner case: newer version means CMS modified without publishing first
+        if (version > Version)
         {
-            return;
+            Payload = cmsEvent.Payload ?? "{}";
+            Version = version;
         }
 
-        Payload = cmsEvent.Payload ?? "{}";
-        Version = version;
-        Published = false;
+        Published = false; // always mark unpublished if version >= stored
         UpdatedAtUtc = cmsEvent.Timestamp;
     }
 

@@ -1,149 +1,207 @@
 using System;
 using CmsSyncService.Domain;
 using Xunit;
-
-namespace CmsSyncService.UnitTests.Domain;
-
-public class CmsEntityTests
+namespace CmsSyncService.UnitTests.Domain
 {
-    [Fact]
-    public void CreatePublished_SetsPropertiesCorrectly()
+    public class CmsEntityTests
     {
-        var cmsEvent = new CmsEvent
+        [Fact]
+        public void ApplyPublish_DoesNotUpdatePropertiesIfVersionIsSame()
         {
-            Id = "entity-1",
-            Payload = "{\"title\":\"test\"}",
-            Version = 2,
-            Timestamp = DateTimeOffset.UtcNow
-        };
+            var initialEvent = new CmsEvent
+            {
+                Id = "entity-7",
+                Payload = "{\"title\":\"old\"}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow.AddDays(-1)
+            };
+            var entity = CmsEntity.CreateUnpublished(initialEvent);
 
-        var entity = CmsEntity.CreatePublished(cmsEvent);
+            var sameVersionEvent = new CmsEvent
+            {
+                Id = "entity-7",
+                Payload = "{\"title\":\"new\"}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow
+            };
 
-        Assert.Equal("entity-1", entity.Id);
-        Assert.Equal("{\"title\":\"test\"}", entity.Payload);
-        Assert.Equal(2, entity.Version);
-        Assert.True(entity.Published);
-        Assert.False(entity.AdminDisabled);
-        Assert.Equal(cmsEvent.Timestamp, entity.UpdatedAtUtc);
-    }
+            entity.ApplyPublish(sameVersionEvent);
 
-    [Fact]
-    public void CreateUnpublished_SetsPropertiesCorrectly()
-    {
-        var cmsEvent = new CmsEvent
+            // Should not update payload or version if version is the same, but should set Published = true and update UpdatedAtUtc
+            Assert.Equal("{\"title\":\"old\"}", entity.Payload);
+            Assert.Equal(2, entity.Version);
+            Assert.True(entity.Published);
+            Assert.Equal(sameVersionEvent.Timestamp, entity.UpdatedAtUtc);
+        }
+
+        [Fact]
+        public void ApplyUnpublish_DoesNotUpdatePropertiesIfVersionIsSame()
         {
-            Id = "entity-2",
-            Payload = "{\"title\":\"unpub\"}",
-            Version = 3,
-            Timestamp = DateTimeOffset.UtcNow
-        };
+            var initialEvent = new CmsEvent
+            {
+                Id = "entity-4",
+                Payload = "{\"title\":\"old\"}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow.AddDays(-1)
+            };
+            var entity = CmsEntity.CreatePublished(initialEvent);
 
-        var entity = CmsEntity.CreateUnpublished(cmsEvent);
+            var sameVersionEvent = new CmsEvent
+            {
+                Id = "entity-4",
+                Payload = "{\"title\":\"new\"}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow
+            };
 
-        Assert.Equal("entity-2", entity.Id);
-        Assert.Equal("{\"title\":\"unpub\"}", entity.Payload);
-        Assert.Equal(3, entity.Version);
-        Assert.False(entity.Published);
-        Assert.False(entity.AdminDisabled);
-        Assert.Equal(cmsEvent.Timestamp, entity.UpdatedAtUtc);
-    }
+            entity.ApplyUnpublish(sameVersionEvent);
 
-    [Fact]
-    public void ApplyPublish_UpdatesPropertiesIfVersionIsHigher()
-    {
-        var initialEvent = new CmsEvent
+            // Should not update payload or version if version is the same, but should set Published = false and update UpdatedAtUtc
+            Assert.Equal("{\"title\":\"old\"}", entity.Payload);
+            Assert.Equal(2, entity.Version);
+            Assert.False(entity.Published);
+            Assert.Equal(sameVersionEvent.Timestamp, entity.UpdatedAtUtc);
+        }
+
+        [Fact]
+        public void CreatePublished_SetsPropertiesCorrectly()
         {
-            Id = "entity-3",
-            Payload = "{\"title\":\"old\"}",
-            Version = 1,
-            Timestamp = DateTimeOffset.UtcNow.AddDays(-1)
-        };
-        var entity = CmsEntity.CreatePublished(initialEvent);
+            var cmsEvent = new CmsEvent
+            {
+                Id = "entity-1",
+                Payload = "{\"title\":\"test\"}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow
+            };
 
-        var newEvent = new CmsEvent
+            var entity = CmsEntity.CreatePublished(cmsEvent);
+
+            Assert.Equal("entity-1", entity.Id);
+            Assert.Equal("{\"title\":\"test\"}", entity.Payload);
+            Assert.Equal(2, entity.Version);
+            Assert.True(entity.Published);
+            Assert.False(entity.AdminDisabled);
+            Assert.Equal(cmsEvent.Timestamp, entity.UpdatedAtUtc);
+        }
+
+        [Fact]
+        public void CreateUnpublished_SetsPropertiesCorrectly()
         {
-            Id = "entity-3",
-            Payload = "{\"title\":\"new\"}",
-            Version = 2,
-            Timestamp = DateTimeOffset.UtcNow
-        };
+            var cmsEvent = new CmsEvent
+            {
+                Id = "entity-2",
+                Payload = "{\"title\":\"unpub\"}",
+                Version = 3,
+                Timestamp = DateTimeOffset.UtcNow
+            };
 
-        entity.ApplyPublish(newEvent);
+            var entity = CmsEntity.CreateUnpublished(cmsEvent);
 
-        Assert.Equal("{\"title\":\"new\"}", entity.Payload);
-        Assert.Equal(2, entity.Version);
-        Assert.True(entity.Published);
-        Assert.Equal(newEvent.Timestamp, entity.UpdatedAtUtc);
-    }
+            Assert.Equal("entity-2", entity.Id);
+            Assert.Equal("{\"title\":\"unpub\"}", entity.Payload);
+            Assert.Equal(3, entity.Version);
+            Assert.False(entity.Published);
+            Assert.False(entity.AdminDisabled);
+            Assert.Equal(cmsEvent.Timestamp, entity.UpdatedAtUtc);
+        }
 
-    [Fact]
-    public void ApplyUnpublish_UpdatesPropertiesIfVersionIsHigher()
-    {
-        var initialEvent = new CmsEvent
+        [Fact]
+        public void ApplyPublish_UpdatesPropertiesIfVersionIsHigher()
         {
-            Id = "entity-4",
-            Payload = "{\"title\":\"old\"}",
-            Version = 1,
-            Timestamp = DateTimeOffset.UtcNow.AddDays(-1)
-        };
-        var entity = CmsEntity.CreatePublished(initialEvent);
+            var initialEvent = new CmsEvent
+            {
+                Id = "entity-3",
+                Payload = "{\"title\":\"old\"}",
+                Version = 1,
+                Timestamp = DateTimeOffset.UtcNow.AddDays(-1)
+            };
+            var entity = CmsEntity.CreatePublished(initialEvent);
 
-        var newEvent = new CmsEvent
+            var newEvent = new CmsEvent
+            {
+                Id = "entity-3",
+                Payload = "{\"title\":\"new\"}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            entity.ApplyPublish(newEvent);
+
+            Assert.Equal("{\"title\":\"new\"}", entity.Payload);
+            Assert.Equal(2, entity.Version);
+            Assert.True(entity.Published);
+            Assert.Equal(newEvent.Timestamp, entity.UpdatedAtUtc);
+        }
+
+        [Fact]
+        public void ApplyUnpublish_UpdatesPropertiesIfVersionIsHigher()
         {
-            Id = "entity-4",
-            Payload = "{\"title\":\"new\"}",
-            Version = 2,
-            Timestamp = DateTimeOffset.UtcNow
-        };
+            var initialEvent = new CmsEvent
+            {
+                Id = "entity-4",
+                Payload = "{\"title\":\"old\"}",
+                Version = 1,
+                Timestamp = DateTimeOffset.UtcNow.AddDays(-1)
+            };
+            var entity = CmsEntity.CreatePublished(initialEvent);
 
-        entity.ApplyUnpublish(newEvent);
+            var newEvent = new CmsEvent
+            {
+                Id = "entity-4",
+                Payload = "{\"title\":\"new\"}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow
+            };
 
-        Assert.Equal("{\"title\":\"new\"}", entity.Payload);
-        Assert.Equal(2, entity.Version);
-        Assert.False(entity.Published);
-        Assert.Equal(newEvent.Timestamp, entity.UpdatedAtUtc);
-    }
+            entity.ApplyUnpublish(newEvent);
 
-    [Fact]
-    public void SetAdminDisabled_OnlyUpdatesFlag()
-    {
-        var entity = CmsEntity.CreatePublished(new CmsEvent
+            Assert.Equal("{\"title\":\"new\"}", entity.Payload);
+            Assert.Equal(2, entity.Version);
+            Assert.False(entity.Published);
+            Assert.Equal(newEvent.Timestamp, entity.UpdatedAtUtc);
+        }
+
+        [Fact]
+        public void SetAdminDisabled_OnlyUpdatesFlag()
         {
-            Id = "entity-5",
-            Payload = "{}",
-            Version = 1,
-            Timestamp = DateTimeOffset.UtcNow
-        });
-        var originalTimestamp = entity.UpdatedAtUtc;
-        entity.SetAdminDisabled(true);
-        Assert.True(entity.AdminDisabled);
-        Assert.Equal(originalTimestamp, entity.UpdatedAtUtc);
-        entity.SetAdminDisabled(false);
-        Assert.False(entity.AdminDisabled);
-        Assert.Equal(originalTimestamp, entity.UpdatedAtUtc);
-    }
+            var entity = CmsEntity.CreatePublished(new CmsEvent
+            {
+                Id = "entity-5",
+                Payload = "{}",
+                Version = 1,
+                Timestamp = DateTimeOffset.UtcNow
+            });
+            var originalTimestamp = entity.UpdatedAtUtc;
+            entity.SetAdminDisabled(true);
+            Assert.True(entity.AdminDisabled);
+            Assert.Equal(originalTimestamp, entity.UpdatedAtUtc);
+            entity.SetAdminDisabled(false);
+            Assert.False(entity.AdminDisabled);
+            Assert.Equal(originalTimestamp, entity.UpdatedAtUtc);
+        }
 
-    [Fact]
-    public void IsVisibleToNormalUser_ReturnsTrueOnlyIfPublishedAndNotAdminDisabled()
-    {
-        var entity = CmsEntity.CreatePublished(new CmsEvent
+        [Fact]
+        public void IsVisibleToNormalUser_ReturnsTrueOnlyIfPublishedAndNotAdminDisabled()
         {
-            Id = "entity-6",
-            Payload = "{}",
-            Version = 1,
-            Timestamp = DateTimeOffset.UtcNow
-        });
-        Assert.True(entity.IsVisibleToNormalUser());
-        entity.SetAdminDisabled(true);
-        Assert.False(entity.IsVisibleToNormalUser());
-        entity.SetAdminDisabled(false);
-        entity.ApplyUnpublish(new CmsEvent
-        {
-            Id = "entity-6",
-            Payload = "{}",
-            Version = 2,
-            Timestamp = DateTimeOffset.UtcNow
-        });
-        Assert.False(entity.IsVisibleToNormalUser());
+            var entity = CmsEntity.CreatePublished(new CmsEvent
+            {
+                Id = "entity-6",
+                Payload = "{}",
+                Version = 1,
+                Timestamp = DateTimeOffset.UtcNow
+            });
+            Assert.True(entity.IsVisibleToNormalUser());
+            entity.SetAdminDisabled(true);
+            Assert.False(entity.IsVisibleToNormalUser());
+            entity.SetAdminDisabled(false);
+            entity.ApplyUnpublish(new CmsEvent
+            {
+                Id = "entity-6",
+                Payload = "{}",
+                Version = 2,
+                Timestamp = DateTimeOffset.UtcNow
+            });
+            Assert.False(entity.IsVisibleToNormalUser());
+        }
     }
 }
