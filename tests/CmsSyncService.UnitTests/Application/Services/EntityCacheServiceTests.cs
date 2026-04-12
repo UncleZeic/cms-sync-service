@@ -20,7 +20,8 @@ public class EntityCacheServiceTests
     {
         var service = CreateService();
         service.Set("key", "value");
-        Assert.Equal("value", service.Get<string>("key"));
+        string? value = service.Get<string>("key");
+        Assert.Equal("value", value);
     }
 
     [Fact]
@@ -28,7 +29,7 @@ public class EntityCacheServiceTests
     {
         var service = CreateService();
         int called = 0;
-        string value = service.GetOrCreate("key", () => { called++; return "v"; });
+        string? value = service.GetOrCreate("key", () => { called++; return "v"; });
         Assert.Equal("v", value);
         Assert.Equal(1, called);
         // Should not call factory again

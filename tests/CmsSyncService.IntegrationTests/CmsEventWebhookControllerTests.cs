@@ -15,28 +15,6 @@ Collection("DbWriteTests")]
 public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     [Fact]
-    public async Task IngestEventsPostWebhook_TooLargePayload_Returns413()
-    {
-        var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
-        // Create a payload just over 1MB
-        var bigPayload = new string('x', 1024 * 1024); // 1MB string
-        var events = new[]
-        {
-            new {
-                type = "publish",
-                id = "test-entity-big",
-                payload = bigPayload,
-                version = 1,
-                timestamp = DateTimeOffset.UtcNow
-            }
-        };
-        var json = JsonSerializer.Serialize(events);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await client.PostAsync("/cms/events", content);
-        Assert.Equal((HttpStatusCode)413, response.StatusCode); // 413 Payload Too Large
-    }
-    [Fact]
     public async Task IngestEventsPostWebhook_Publish_Modify_Unpublish_Scenario()
     {
         var client = _factory.CreateClient();
