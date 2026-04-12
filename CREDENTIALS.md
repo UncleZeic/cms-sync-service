@@ -1,4 +1,7 @@
-# CREDENTIALS.md — Development Only
+
+# ⚠️ WARNING: PUBLICLY VISIBLE DEVELOPMENT CREDENTIALS
+
+**This file is committed to the public repository. Do NOT use these credentials in production or for any sensitive environment.**
 
 These credentials are for local development and CI only.
 
