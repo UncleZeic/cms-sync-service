@@ -9,6 +9,28 @@ namespace CmsSyncService.UnitTests.Infrastructure.Persistence;
 public class CmsEntityRepositoryAdvancedTests
 {
     [Fact]
+    public async Task GetByIdsAsync_ReturnsMatchingEntities()
+    {
+        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
+            .UseInMemoryDatabase(databaseName: "GetByIdsAsync_ReturnsMatchingEntities")
+            .Options;
+
+        var repo = CreateRepository(options);
+        var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity2 = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity3 = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        await repo.AddAsync(entity1);
+        await repo.AddAsync(entity2);
+        await repo.AddAsync(entity3);
+        await repo.SaveChangesAsync();
+
+        var result = await repo.GetByIdsAsync(new List<string> { "id1", "id3", "notfound" });
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, e => e.Id == "id1");
+        Assert.Contains(result, e => e.Id == "id3");
+        Assert.DoesNotContain(result, e => e.Id == "id2");
+    }
+    [Fact]
     public async Task GetByIdVisibleToUserAsync_Admin_GetsAnyEntity()
     {
         var options = new DbContextOptionsBuilder<CmsSyncDbContext>()

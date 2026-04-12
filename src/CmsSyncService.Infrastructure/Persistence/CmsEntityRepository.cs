@@ -7,6 +7,12 @@ namespace CmsSyncService.Infrastructure.Persistence;
 
 public class CmsEntityRepository : ICmsEntityRepository
 {
+    public async Task<List<CmsEntity>> GetByIdsAsync(List<string> ids, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.CmsEntities
+            .Where(e => ids.Contains(e.Id))
+            .ToListAsync(cancellationToken);
+    }
     public async Task<CmsEntity?> GetByIdVisibleToUserAsync(string id, bool isAdmin, CancellationToken cancellationToken = default, bool asNoTracking = false)
     {
         var query = _dbContext.CmsEntities.AsQueryable();
