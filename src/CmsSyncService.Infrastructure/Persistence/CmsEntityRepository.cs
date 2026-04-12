@@ -9,6 +9,8 @@ public class CmsEntityRepository : ICmsEntityRepository
 {
     public async Task<List<CmsEntity>> GetByIdsAsync(List<string> ids, CancellationToken cancellationToken = default)
     {
+        // Note: AsNoTracking is intentionally NOT used here, because ProcessBatchAsync mutates entities directly.
+        // All other read methods accept asNoTracking, but this method is used in the write path and must track entities for EF Core change tracking.
         return await _dbContext.CmsEntities
             .Where(e => ids.Contains(e.Id))
             .ToListAsync(cancellationToken);
