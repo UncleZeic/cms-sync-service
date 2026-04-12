@@ -3,6 +3,12 @@
 ## Description
 A .NET 10 Web API that ingests CMS webhook events, persists the latest known entity state, and exposes a protected REST API for consumers. Now uses PostgreSQL for persistence and Docker for local development.
 
+## Architecture
+- **Api** → Controllers + minimal middleware
+- **Application** → Business services (`CmsEventApplicationService`, `EntityCacheService`, `CmsEntityAdminService`)
+- **Infrastructure** → EF Core, Repositories, Migrations
+- **Domain** → Entity business rules (publish/unpublish/versioning)
+
 ## Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine)
