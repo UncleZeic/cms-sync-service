@@ -5,7 +5,7 @@
       "name": ".NET Core Test (IntegrationTests)",
       "type": "coreclr",
       "request": "launch",
-      "program": "${workspaceFolder}/tests/CmsSyncService.IntegrationTests/bin/Debug/net9.0/CmsSyncService.IntegrationTests.dll",
+      "program": "${workspaceFolder}/tests/CmsSyncService.IntegrationTests/bin/Debug/net10.0/CmsSyncService.IntegrationTests.dll",
       "args": [],
       "cwd": "${workspaceFolder}/tests/CmsSyncService.IntegrationTests",
       "console": "integratedTerminal",
