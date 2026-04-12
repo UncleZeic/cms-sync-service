@@ -1,16 +1,88 @@
+using System;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace CmsSyncService.Api.Tests;
 
-[Collection("DbWriteTests")]
+[
+Collection("DbWriteTests")]
 public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
+    [Fact]
+    public async Task IngestEventsPostWebhook_Publish_Modify_Unpublish_Scenario()
+    {
+        var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
+        // Step 1: Publish v1
+        var publishEvents = new[]
+        {
+            new {
+                type = "publish",
+                id = "test-entity-scenario",
+                payload = new { foo = "v1" },
+                version = 1,
+                timestamp = DateTimeOffset.Parse("2026-04-01T12:00:00Z")
+            }
+        };
+        var publishJson = JsonSerializer.Serialize(publishEvents);
+        var publishContent = new StringContent(publishJson, Encoding.UTF8, "application/json");
+        var publishResponse = await client.PostAsync("/cms/events", publishContent);
+        Assert.Equal(HttpStatusCode.OK, publishResponse.StatusCode);
+
+        // Step 2: Modify to v2 in CMS (simulate by sending a publish event with new payload, but do not publish)
+        // In this system, modification without publishing is not a direct event, so we simulate by updating the payload in the next unpublish event.
+
+        // Step 3: Unpublish v2 (with new payload and version)
+        var unpublishEvents = new[]
+        {
+            new {
+                type = "unpublish",
+                id = "test-entity-scenario",
+                payload = new { foo = "v2-modified" },
+                version = 2,
+                timestamp = DateTimeOffset.Parse("2026-04-01T12:10:00Z")
+            }
+        };
+        var unpublishJson = JsonSerializer.Serialize(unpublishEvents);
+        var unpublishContent = new StringContent(unpublishJson, Encoding.UTF8, "application/json");
+        var unpublishResponse = await client.PostAsync("/cms/events", unpublishContent);
+        Assert.Equal(HttpStatusCode.OK, unpublishResponse.StatusCode);
+
+        // Step 4: Fetch the entity and verify it is unpublished and has the v2 payload
+        AddBasicAuthHeader(client); // Ensure admin
+        var getResponse = await client.GetAsync("/cms/entities/test-entity-scenario");
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        var jsonString = await getResponse.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(jsonString);
+        var root = doc.RootElement;
+        // Defensive: handle both string and object payload
+        var payloadElement = root.GetProperty("payload");
+        if (payloadElement.ValueKind == JsonValueKind.Object)
+        {
+            Assert.Equal("v2-modified", payloadElement.GetProperty("foo").GetString());
+        }
+        else if (payloadElement.ValueKind == JsonValueKind.String)
+        {
+            // If payload is a string containing JSON, parse it
+            var payloadJson = payloadElement.GetString();
+            using var payloadDoc = JsonDocument.Parse(payloadJson);
+            var fooValue = payloadDoc.RootElement.GetProperty("foo").GetString();
+            Assert.Equal("v2-modified", fooValue);
+        }
+        else
+        {
+            // Log for debugging
+            throw new InvalidOperationException($"Unexpected payload type: {payloadElement.ValueKind}, value: {payloadElement}");
+        }
+        Assert.False(root.GetProperty("published").GetBoolean());
+        Assert.Equal(2, root.GetProperty("version").GetInt32());
+    }
     private readonly WebApplicationFactory<Program> _factory;
 
     public CmsEventWebhookControllerTests(WebApplicationFactory<Program> factory)
@@ -219,8 +291,8 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         var client = _factory.CreateClient();
         // Use viewer credentials (should not have EventUpdater/Admin role)
         var credentials = "viewer:DD888324-9217-41D1-85D9-20D844090106";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         var events = new[]
         {
             new {
