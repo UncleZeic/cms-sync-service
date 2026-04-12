@@ -112,8 +112,8 @@ public class CmsEventApplicationServiceTests
     public async Task ProcessBatchAsync_UnpublishForNonExistentEntity_AddsNewUnpublishedEntity()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
-        repoMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>(), It.IsAny<bool>())).ReturnsAsync(new List<CmsEntity>());
-        repoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((CmsEntity?)null);
+        repoMock.Setup(r => r.GetAllAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>(), It.IsAny<bool>())).ReturnsAsync(new List<CmsEntity>());
+        repoMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), It.IsAny<bool>())).ReturnsAsync((CmsEntity?)null);
         repoMock.Setup(r => r.AddAsync(It.IsAny<CmsEntity>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask).Verifiable();
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
         var cacheMock = new Mock<IMemoryCache>();

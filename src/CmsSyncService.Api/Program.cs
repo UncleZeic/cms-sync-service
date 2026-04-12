@@ -17,8 +17,8 @@ builder.Services.AddAuthentication(options =>
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
 	builder.Services.AddMemoryCache();
-builder.Services.Configure<CacheDurations>(builder.Configuration.GetSection("CacheDurations"));
-builder.Services.AddScoped<IEntityCacheService, EntityCacheService>();
+builder.Services.Configure<CmsSyncService.Application.CacheDurations>(builder.Configuration.GetSection("CacheDurations"));
+builder.Services.AddSingleton<IEntityCacheService, EntityCacheService>();
 
 // Dependency Injection registration
 builder.Services.AddDbContext<CmsSyncDbContext>(options =>
