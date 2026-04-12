@@ -8,7 +8,14 @@ using CmsSyncService.Application.Caching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Enforce 1MB request body size limit for Kestrel
+builder.WebHost.ConfigureKestrel(options =>
+{
+	options.Limits.MaxRequestBodySize = 1048576; // 1 MB
+});
 
 builder.Services.AddAuthentication(options =>
 {

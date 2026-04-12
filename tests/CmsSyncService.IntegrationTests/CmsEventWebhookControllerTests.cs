@@ -36,6 +36,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         var response = await client.PostAsync("/cms/events", content);
         Assert.Equal((HttpStatusCode)413, response.StatusCode); // 413 Payload Too Large
     }
+    [Fact]
     public async Task IngestEventsPostWebhook_Publish_Modify_Unpublish_Scenario()
     {
         var client = _factory.CreateClient();

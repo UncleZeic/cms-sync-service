@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CmsSyncService.Application;
 using CmsSyncService.Application.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
