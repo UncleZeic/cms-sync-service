@@ -71,17 +71,11 @@ namespace CmsSyncService.Api.Controllers
                 var dto = _cacheService.Get<ICmsEntityDto>(cacheKey);
                 if (dto == null)
                 {
-                    var entity = await _repository.GetByIdAsync(id, cancellationToken, true);
+                    var isAdmin = User.IsInRole("Admin");
+                    var entity = await _repository.GetByIdVisibleToUserAsync(id, isAdmin, cancellationToken, true);
                     if (entity == null)
                         return NotFound();
-                    if (User.IsInRole("Admin"))
-                    {
-                        dto = entity.ToAdminDto();
-                    }
-                    else
-                    {
-                        dto = entity.ToDto();
-                    }
+                    dto = isAdmin ? entity.ToAdminDto() : entity.ToDto();
                     _cacheService.Set(cacheKey, dto);
                 }
                 return Ok(dto);

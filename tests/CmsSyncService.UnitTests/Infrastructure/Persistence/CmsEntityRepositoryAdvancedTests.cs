@@ -8,6 +8,50 @@ namespace CmsSyncService.UnitTests.Infrastructure.Persistence;
 
 public class CmsEntityRepositoryAdvancedTests
 {
+    [Fact]
+    public async Task GetByIdVisibleToUserAsync_Admin_GetsAnyEntity()
+    {
+        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
+            .UseInMemoryDatabase(databaseName: "GetByIdVisibleToUserAsync_Admin_GetsAnyEntity")
+            .Options;
+
+        var repo = CreateRepository(options);
+        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        adminDisabled.SetAdminDisabled(true);
+        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        await repo.AddAsync(visible);
+        await repo.AddAsync(adminDisabled);
+        await repo.AddAsync(unpublished);
+        await repo.SaveChangesAsync();
+
+        Assert.NotNull(await repo.GetByIdVisibleToUserAsync("id1", true));
+        Assert.NotNull(await repo.GetByIdVisibleToUserAsync("id2", true));
+        Assert.NotNull(await repo.GetByIdVisibleToUserAsync("id3", true));
+    }
+
+    [Fact]
+    public async Task GetByIdVisibleToUserAsync_NonAdmin_GetsOnlyVisible()
+    {
+        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
+            .UseInMemoryDatabase(databaseName: "GetByIdVisibleToUserAsync_NonAdmin_GetsOnlyVisible")
+            .Options;
+
+        var repo = CreateRepository(options);
+        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        adminDisabled.SetAdminDisabled(true);
+        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        await repo.AddAsync(visible);
+        await repo.AddAsync(adminDisabled);
+        await repo.AddAsync(unpublished);
+        await repo.SaveChangesAsync();
+
+        Assert.NotNull(await repo.GetByIdVisibleToUserAsync("id1", false));
+        Assert.Null(await repo.GetByIdVisibleToUserAsync("id2", false));
+        Assert.Null(await repo.GetByIdVisibleToUserAsync("id3", false));
+    }
+
 
     private CmsEntityRepository CreateRepository(DbContextOptions<CmsSyncDbContext> options)
     {
