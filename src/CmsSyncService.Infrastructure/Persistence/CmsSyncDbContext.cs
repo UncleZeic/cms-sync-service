@@ -33,6 +33,8 @@ public class CmsSyncDbContext : DbContext
                 .IsRequired();
             entity.Property(x => x.UpdatedAtUtc)
                 .IsRequired();
+            // Composite index on Published, AdminDisabled
+            entity.HasIndex(x => new { x.Published, x.AdminDisabled });
         });
     }
 }
