@@ -37,17 +37,36 @@ namespace CmsSyncService.Api.Controllers
         {
             try
             {
-                // Caching is not used for paged queries
-                if (User.IsInRole("Admin"))
+                var isAdmin = User.IsInRole("Admin");
+
+                async Task<List<ICmsEntityDto>> FetchDtos()
                 {
-                    var entities = await _repository.GetAllAsync(skip, take, cancellationToken, true);
-                    var dtos = entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList();
+                    if (isAdmin)
+                    {
+                        var entities = await _repository.GetAllAsync(skip, take, cancellationToken, true);
+                        return entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList();
+                    }
+                    else
+                    {
+                        var entities = await _repository.GetVisibleToNormalUserAsync(skip, take, cancellationToken, true);
+                        return entities.Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
+                    }
+                }
+
+                // Only cache the most common first page (skip=0, take=100)
+                if (skip == 0 && take == 100)
+                {
+                    string cacheKey = EntityCacheKeys.GetPagedEntityListKey(isAdmin, skip, take);
+                    var cached = _cacheService.Get<List<ICmsEntityDto>>(cacheKey);
+                    if (cached != null)
+                        return Ok(cached);
+                    var dtos = await FetchDtos();
+                    _cacheService.Set(cacheKey, dtos);
                     return Ok(dtos);
                 }
                 else
                 {
-                    var entities = await _repository.GetVisibleToNormalUserAsync(skip, take, cancellationToken, true);
-                    var dtos = entities.Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
+                    var dtos = await FetchDtos();
                     return Ok(dtos);
                 }
             }
