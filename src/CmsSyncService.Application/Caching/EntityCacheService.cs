@@ -1,6 +1,9 @@
+
 using CmsSyncService.Application;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Threading;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 
@@ -24,27 +27,46 @@ public class EntityCacheService : IEntityCacheService
         return _cache.TryGetValue(key, out var value) ? value as T : null;
     }
 
-
-    // Simple in-memory locks for cache stampede protection
-    private static readonly Dictionary<string, object> _locks = new();
-    private static readonly object _locksGlobal = new();
+    // Improved in-memory locks for cache stampede protection
+    // Use WeakReference to avoid unbounded memory growth
+    private static readonly ConcurrentDictionary<string, WeakReference<object>> _locks = new();
+    private static int _cleanupCounter = 0;
 
     public T? GetOrCreate<T>(string key, Func<T> factory, bool isList = false) where T : class
     {
         if (_cache.TryGetValue(key, out var value) && value is T cached)
             return cached;
 
-        // Stampede protection: lock per key
-        object keyLock;
-        lock (_locksGlobal)
+        // Stampede protection: lock per key using WeakReference
+        object keyLock = _locks.GetOrAdd(key, _ => new WeakReference<object>(new object()));
+        if (keyLock is WeakReference<object> weakRef)
         {
-            if (!_locks.TryGetValue(key, out keyLock))
+            if (!weakRef.TryGetTarget(out var realLock))
             {
-                keyLock = new object();
-                _locks[key] = keyLock;
+                realLock = new object();
+                _locks[key] = new WeakReference<object>(realLock);
+            }
+            // Periodically clean up dead WeakReferences
+            if (Interlocked.Increment(ref _cleanupCounter) % 1000 == 0)
+            {
+                foreach (var pair in _locks)
+                {
+                    if (!pair.Value.TryGetTarget(out _))
+                        _locks.TryRemove(pair.Key, out _);
+                }
+            }
+            lock (realLock)
+            {
+                if (_cache.TryGetValue(key, out value) && value is T cached2)
+                    return cached2;
+                var created = factory();
+                Set(key, created, isList);
+                return created;
             }
         }
-        lock (keyLock)
+        // Fallback (should not happen)
+        var fallbackLock = new object();
+        lock (fallbackLock)
         {
             if (_cache.TryGetValue(key, out value) && value is T cached2)
                 return cached2;
