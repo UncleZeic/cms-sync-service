@@ -1,7 +1,7 @@
 
-    using CmsSyncService.Application.Repositories;
-    using CmsSyncService.Domain;
-    using Microsoft.EntityFrameworkCore;
+using CmsSyncService.Application.Repositories;
+using CmsSyncService.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace CmsSyncService.Infrastructure.Persistence;
 
