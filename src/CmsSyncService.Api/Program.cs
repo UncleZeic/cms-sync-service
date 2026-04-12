@@ -27,8 +27,12 @@ builder.Services.AddScoped<ICmsEventApplicationService, CmsEventApplicationServi
 builder.Services.AddScoped<ICmsEntityRepository, CmsEntityRepository>();
 builder.Services.AddScoped<ICmsEntityAdminService, CmsEntityAdminService>();
 
+
 var app = builder.Build();
 
+
+// WARNING: Basic Auth credentials are only secure over HTTPS. Do not deploy without TLS.
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/health", [AllowAnonymous] () => Results.Text("Healthy"));
