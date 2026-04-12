@@ -21,6 +21,7 @@ namespace CmsSyncService.Api.Controllers
         }
 
         [HttpPost("")]
+        [RequestSizeLimit(1048576)] // 1 MB limit; adjust as needed
         public async Task<IActionResult> IngestEvents([FromBody] List<CmsEventDto> events, CancellationToken cancellationToken)
         {
             try
