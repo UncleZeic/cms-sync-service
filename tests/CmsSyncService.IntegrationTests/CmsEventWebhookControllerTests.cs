@@ -71,7 +71,8 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         {
             // If payload is a string containing JSON, parse it
             var payloadJson = payloadElement.GetString();
-            using var payloadDoc = JsonDocument.Parse(payloadJson);
+            Assert.False(string.IsNullOrEmpty(payloadJson));
+            using var payloadDoc = JsonDocument.Parse(payloadJson!);
             var fooValue = payloadDoc.RootElement.GetProperty("foo").GetString();
             Assert.Equal("v2-modified", fooValue);
         }
