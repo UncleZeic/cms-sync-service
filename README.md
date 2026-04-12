@@ -39,3 +39,32 @@ See [CREDENTIALS.md](CREDENTIALS.md) for local development and CI credentials pl
 - ASP.NET Core Web API
 - PostgreSQL (via Docker)
 - Entity Framework Core (Npgsql)
+
+## Performance Benchmarks
+
+This project uses [BenchmarkDotNet](https://benchmarkdotnet.org/) to track cache performance over time. Benchmarks are run automatically in CI, and results are uploaded as artifacts.
+
+### Running Benchmarks Locally
+
+```sh
+dotnet run -c Release --project benchmarks/benchmarks.csproj
+```
+
+### Adding/Comparing Results
+- Results are saved as `benchmark-results.txt` in CI.
+- To compare results and detect regressions, use the provided script:
+
+```sh
+cd benchmarks
+python3 compare_benchmarks.py
+```
+
+The script will fail if any operation regresses by more than 10%.
+
+### Benchmark Scenarios
+- Get/Set cached value (baseline)
+- Cold cache access
+- Large object access
+- Cache miss
+- Concurrent access
+- Memory and GC allocation tracking
