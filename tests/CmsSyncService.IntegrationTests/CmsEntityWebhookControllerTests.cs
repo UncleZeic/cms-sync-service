@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Xunit;
 using System.Net.Http.Json;
+using CmsSyncService.Application.DTOs;
 using CmsSyncService.Api.Tests.TestFixtures;
 using CmsSyncService.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,13 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
     private static void AddBasicAuthHeader(HttpClient client)
     {
         var credentials = "viewer:DD888324-9217-41D1-85D9-20D844090106";
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+    }
+
+    private static void AddAdminAuthHeader(HttpClient client)
+    {
+        var credentials = "admin:7FDD33AD-3FD3-41B8-AC05-5A9122ABC086";
         var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
     }
@@ -111,6 +119,55 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
         var entity = CmsEntityDbSeeder.SeedEntities[0];
         var response = await client.GetAsync($"/cms/entities/{entity.Id}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetById_AsViewer_UnpublishedEntity_ReturnsNotFound()
+    {
+        var client = _factory.CreateClient();
+        AddBasicAuthHeader(client);
+        var unpublishedEntity = CmsEntityDbSeeder.SeedEntities[2];
+
+        var response = await client.GetAsync($"/cms/entities/{unpublishedEntity.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetById_AsViewer_AdminDisabledEntity_ReturnsNotFound()
+    {
+        var adminClient = _factory.CreateClient();
+        AddAdminAuthHeader(adminClient);
+        var targetEntity = CmsEntityDbSeeder.SeedEntities[0];
+
+        var patchResponse = await adminClient.PatchAsJsonAsync($"/cms/entities/{targetEntity.Id}", new AdminDisabledDto { AdminDisabled = true });
+        Assert.Equal(HttpStatusCode.OK, patchResponse.StatusCode);
+
+        var viewerClient = _factory.CreateClient();
+        AddBasicAuthHeader(viewerClient);
+        var getResponse = await viewerClient.GetAsync($"/cms/entities/{targetEntity.Id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAll_AsViewer_AdminDisabledPublishedEntity_IsHiddenFromListing()
+    {
+        var targetEntity = CmsEntityDbSeeder.SeedEntities[0];
+
+        var adminClient = _factory.CreateClient();
+        AddAdminAuthHeader(adminClient);
+        var patchResponse = await adminClient.PatchAsJsonAsync($"/cms/entities/{targetEntity.Id}", new AdminDisabledDto { AdminDisabled = true });
+        Assert.Equal(HttpStatusCode.OK, patchResponse.StatusCode);
+
+        var viewerClient = _factory.CreateClient();
+        AddBasicAuthHeader(viewerClient);
+        var listResponse = await viewerClient.GetAsync("/cms/entities");
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+
+        var entities = await listResponse.Content.ReadFromJsonAsync<dynamic[]>();
+        Assert.NotNull(entities);
+        Assert.Single(entities);
     }
 
     [Fact]

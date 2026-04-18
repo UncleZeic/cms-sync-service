@@ -264,6 +264,53 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     }
 
     [Fact]
+    public async Task IngestEventsPostWebhook_UnpublishSameVersion_MarksEntityUnpublished()
+    {
+        var cmsClient = _factory.CreateClient();
+        AddCmsAuthHeader(cmsClient);
+
+        var publishEvents = new[]
+        {
+            new {
+                type = "publish",
+                id = "same-version-unpublish",
+                payload = new { foo = "v1" },
+                version = 1,
+                timestamp = DateTimeOffset.Parse("2026-04-01T12:00:00Z")
+            }
+        };
+        var publishResponse = await cmsClient.PostAsync(
+            "/cms/events",
+            new StringContent(JsonSerializer.Serialize(publishEvents), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.OK, publishResponse.StatusCode);
+
+        var unpublishEvents = new[]
+        {
+            new {
+                type = "unpublish",
+                id = "same-version-unpublish",
+                payload = new { foo = "v1-updated" },
+                version = 1,
+                timestamp = DateTimeOffset.Parse("2026-04-01T12:05:00Z")
+            }
+        };
+        var unpublishResponse = await cmsClient.PostAsync(
+            "/cms/events",
+            new StringContent(JsonSerializer.Serialize(unpublishEvents), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.OK, unpublishResponse.StatusCode);
+
+        var adminClient = _factory.CreateClient();
+        AddAdminAuthHeader(adminClient);
+        var getResponse = await adminClient.GetAsync("/cms/entities/same-version-unpublish");
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+        using var doc = JsonDocument.Parse(await getResponse.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.False(root.GetProperty("published").GetBoolean());
+        Assert.Equal(1, root.GetProperty("version").GetInt32());
+    }
+
+    [Fact]
     public async Task IngestEventsPostWebhook_Delete_Succeeds()
     {
         var client = _factory.CreateClient();
