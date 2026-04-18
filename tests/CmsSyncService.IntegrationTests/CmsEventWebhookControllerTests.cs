@@ -31,7 +31,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_Publish_Modify_Unpublish_Scenario()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         // Step 1: Publish v1
         var publishEvents = new[]
         {
@@ -68,7 +68,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
         Assert.Equal(HttpStatusCode.OK, unpublishResponse.StatusCode);
 
         // Step 4: Fetch the entity and verify it is unpublished and has the v2 payload
-        AddBasicAuthHeader(client); // Ensure admin
+        AddAdminAuthHeader(client);
         var getResponse = await client.GetAsync("/cms/entities/test-entity-scenario");
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
         var jsonString = await getResponse.Content.ReadAsStringAsync();
@@ -97,7 +97,14 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
         Assert.False(root.GetProperty("published").GetBoolean());
         Assert.Equal(2, root.GetProperty("version").GetInt32());
     }
-    private static void AddBasicAuthHeader(HttpClient client)
+    private static void AddCmsAuthHeader(HttpClient client)
+    {
+        var credentials = "cms-event-user:9A01D9BF-A5B5-45D4-BE41-618B0F11D6CF";
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
+    }
+
+    private static void AddAdminAuthHeader(HttpClient client)
     {
         var credentials = "admin:7FDD33AD-3FD3-41B8-AC05-5A9122ABC086";
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
@@ -108,7 +115,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_MissingType_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         var events = new[]
         {
             new {
@@ -138,7 +145,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_InvalidType_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         var events = new[]
         {
             new {
@@ -159,7 +166,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_MissingPayload_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         var events = new[]
         {
             new {
@@ -180,7 +187,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_MissingVersion_ReturnsBadRequest()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         var events = new[]
         {
             new {
@@ -201,7 +208,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_Publish_Succeeds()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         var events = new[]
         {
             new {
@@ -222,7 +229,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_Unpublish_Succeeds()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         // First publish
         var publishEvents = new[]
         {
@@ -260,7 +267,7 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task IngestEventsPostWebhook_Delete_Succeeds()
     {
         var client = _factory.CreateClient();
-        AddBasicAuthHeader(client);
+        AddCmsAuthHeader(client);
         // First publish
         var publishEvents = new[]
         {
@@ -320,8 +327,8 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
     public async Task CmsEventWebhookController_RejectsInvalidPassword()
     {
         var client = _factory.CreateClient();
-        // Use wrong password for admin
-        var credentials = "admin:wrongpassword";
+        // Use wrong password for the CMS user
+        var credentials = "cms-event-user:wrongpassword";
         var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
         var events = new[]
@@ -338,5 +345,26 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await client.PostAsync("/cms/events", content);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CmsEventWebhookController_RejectsAdminUser()
+    {
+        var client = _factory.CreateClient();
+        AddAdminAuthHeader(client);
+        var events = new[]
+        {
+            new {
+                type = "publish",
+                id = "test-entity-1",
+                payload = new { foo = "bar" },
+                version = 1,
+                timestamp = DateTimeOffset.Parse("2026-04-01T12:00:00Z")
+            }
+        };
+        var json = JsonSerializer.Serialize(events);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("/cms/events", content);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 }

@@ -8,7 +8,7 @@ namespace CmsSyncService.Api.Controllers
 {
     [ApiController]
     [Route("cms/events")]
-    [Authorize(Roles = "Admin,EventUpdater")]
+    [Authorize(Roles = "EventUpdater")]
     public class CmsEventWebhookController : ControllerBase
     {
         private readonly ICmsEventApplicationService _service;
