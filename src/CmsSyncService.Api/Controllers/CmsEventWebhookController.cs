@@ -22,11 +22,11 @@ namespace CmsSyncService.Api.Controllers
 
         [HttpPost("")]
         [RequestSizeLimit(1048576)] // 1 MB limit; adjust as needed
-        public async Task<IActionResult> IngestEvents([FromBody] List<CmsEventDto> events, CancellationToken cancellationToken)
+        public async Task<IActionResult> IngestEvents([FromBody] IEnumerable<CmsEventDto> events, CancellationToken cancellationToken)
         {
             try
             {
-                if (events == null || events.Count == 0)
+                if (events == null || !events.Any())
                     return BadRequest("No events provided.");
 
                 await _service.ProcessBatchAsync(events, cancellationToken);
