@@ -23,17 +23,22 @@ public class CmsEventApplicationService : ICmsEventApplicationService
     public async Task ProcessBatchAsync(IEnumerable<CmsEventDto> events, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(events);
-        int total = events is ICollection<CmsEventDto> col ? col.Count : -1;
+        var batch = events as IReadOnlyCollection<CmsEventDto> ?? events.ToList();
+        int total = batch.Count;
         int processed = 0, skipped = 0, validationFailed = 0, versionConflict = 0;
         _logger.LogInformation("Processing batch of {Count} CMS events", total);
 
         // Fetch all necessary entities upfront
-        var eventIds = events.Select(e => e.Id).Distinct().ToList();
+        var eventIds = batch
+            .Where(e => !string.IsNullOrWhiteSpace(e.Id))
+            .Select(e => e.Id.Trim())
+            .Distinct()
+            .ToList();
         var entities = await _cmsEntityRepository.GetByIdsAsync(eventIds, cancellationToken) ?? new List<CmsEntity>();
         var existingEntities = entities.ToDictionary(e => e.Id);
 
         var affectedIds = new HashSet<string>();
-        foreach (var dto in events)
+        foreach (var dto in batch)
         {
             // Validate DTO
             var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
@@ -48,7 +53,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                 continue;
             }
 
-            var cmsEvent = dto.ToDomain();
+            var cmsEvent = dto.ToNormalized();
             _logger.LogDebug("Processing event: {EventType} for Id: {Id}", cmsEvent.Type, cmsEvent.Id);
 
             existingEntities.TryGetValue(cmsEvent.Id, out var existingEntity);

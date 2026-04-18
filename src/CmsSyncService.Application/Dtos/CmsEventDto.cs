@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using CmsSyncService.Domain;
 
@@ -6,6 +7,8 @@ namespace CmsSyncService.Application.DTOs;
 
 public sealed class CmsEventDto : IValidatableObject
 {
+    private static readonly Regex SafeIdPattern = new("^[a-zA-Z0-9\\-_]+$", RegexOptions.Compiled);
+
     [Required]
     [MaxLength(20)]
     public string Type { get; init; } = string.Empty;
@@ -41,6 +44,28 @@ public sealed class CmsEventDto : IValidatableObject
             yield break;
         }
 
+        if (string.IsNullOrWhiteSpace(Id))
+        {
+            yield return new ValidationResult(
+                "Event id is required.",
+                [nameof(Id)]);
+            yield break;
+        }
+
+        if (!SafeIdPattern.IsMatch(Id.Trim()))
+        {
+            yield return new ValidationResult(
+                "Event id may only contain letters, numbers, hyphens, and underscores.",
+                [nameof(Id)]);
+        }
+
+        if (Timestamp == default)
+        {
+            yield return new ValidationResult(
+                "Timestamp must be a valid non-default value.",
+                [nameof(Timestamp)]);
+        }
+
         if (normalizedType is "publish" or "unpublish")
         {
             if (Version is null)
@@ -63,6 +88,12 @@ public sealed class CmsEventDto : IValidatableObject
                     "Payload is required for publish and unpublish events.",
                     [nameof(Payload)]);
             }
+            else if (Payload.Value.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+            {
+                yield return new ValidationResult(
+                    "Payload must be a JSON object or array.",
+                    [nameof(Payload)]);
+            }
         }
 
         if (normalizedType == "delete" &&
@@ -81,7 +112,7 @@ public sealed class CmsEventDto : IValidatableObject
         {
             Type = ParseType(Type),
             Id = Id.Trim(),
-            Payload = Payload?.GetRawText(),
+            Payload = NormalizePayload(Payload),
             Version = Version,
             Timestamp = Timestamp
         };
@@ -103,13 +134,17 @@ public sealed class CmsEventDto : IValidatableObject
 
     public CmsEvent ToDomain()
     {
-        return new CmsEvent
+        return ToNormalized();
+    }
+
+    private static string? NormalizePayload(JsonElement? payload)
+    {
+        if (payload is null)
         {
-            Id = Id.Trim(),
-            Type = ParseType(Type),
-            Payload = Payload?.GetRawText(),
-            Version = Version,
-            Timestamp = Timestamp
-        };
+            return null;
+        }
+
+        using var document = JsonDocument.Parse(payload.Value.GetRawText());
+        return document.RootElement.GetRawText();
     }
 }
