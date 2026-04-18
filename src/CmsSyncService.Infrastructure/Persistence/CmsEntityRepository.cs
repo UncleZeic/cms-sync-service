@@ -7,37 +7,34 @@ namespace CmsSyncService.Infrastructure.Persistence;
 
 public class CmsEntityRepository : ICmsEntityRepository
 {
+    private readonly CmsSyncDbContext _writeDbContext;
+    private readonly CmsSyncReadDbContext _readDbContext;
+
+    public CmsEntityRepository(CmsSyncDbContext writeDbContext, CmsSyncReadDbContext readDbContext)
+    {
+        _writeDbContext = writeDbContext;
+        _readDbContext = readDbContext;
+    }
+
     public async Task<List<CmsEntity>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
     {
-        // Note: AsNoTracking is intentionally NOT used here, because ProcessBatchAsync mutates entities directly.
-        // All other read methods accept asNoTracking, but this method is used in the write path and must track entities for EF Core change tracking.
-        return await _dbContext.CmsEntities
+        return await _writeDbContext.CmsEntities
             .Where(e => ids.Contains(e.Id))
             .ToListAsync(cancellationToken);
     }
-    public async Task<CmsEntity?> GetByIdVisibleToUserAsync(string id, bool isAdmin, CancellationToken cancellationToken = default, bool asNoTracking = false)
+
+    public async Task<CmsEntity?> GetByIdVisibleToUserAsync(string id, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.CmsEntities.AsQueryable();
-        if (asNoTracking)
-            query = query.AsNoTracking();
+        var query = _readDbContext.CmsEntities.AsQueryable();
         if (!isAdmin)
             query = query.Where(e => e.Published && !e.AdminDisabled);
         return await query.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
-    private readonly CmsSyncDbContext _dbContext;
 
-    public CmsEntityRepository(CmsSyncDbContext dbContext)
+    public async Task<List<CmsEntity>> GetVisibleToNormalUserAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default)
     {
-        _dbContext = dbContext;
-    }
-
-
-    public async Task<List<CmsEntity>> GetVisibleToNormalUserAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default, bool asNoTracking = false)
-    {
-        var query = _dbContext.CmsEntities.AsQueryable();
-        if (asNoTracking)
-            query = query.AsNoTracking();
-        return await query.Where(e => e.Published && !e.AdminDisabled)
+        return await _readDbContext.CmsEntities
+            .Where(e => e.Published && !e.AdminDisabled)
             .OrderByDescending(e => e.UpdatedAtUtc)
             .ThenBy(e => e.Id)
             .Skip(skip)
@@ -45,20 +42,14 @@ public class CmsEntityRepository : ICmsEntityRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default, bool asNoTracking = false)
+    public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.CmsEntities.AsQueryable();
-        if (asNoTracking)
-            query = query.AsNoTracking();
-        return await query.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        return await _writeDbContext.CmsEntities.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<List<CmsEntity>> GetAllAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default, bool asNoTracking = false)
+    public async Task<List<CmsEntity>> GetAllAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.CmsEntities.AsQueryable();
-        if (asNoTracking)
-            query = query.AsNoTracking();
-        return await query
+        return await _readDbContext.CmsEntities
             .OrderByDescending(e => e.UpdatedAtUtc)
             .ThenBy(e => e.Id)
             .Skip(skip)
@@ -68,16 +59,16 @@ public class CmsEntityRepository : ICmsEntityRepository
 
     public async Task AddAsync(CmsEntity entity, CancellationToken cancellationToken = default)
     {
-        await _dbContext.CmsEntities.AddAsync(entity, cancellationToken);
+        await _writeDbContext.CmsEntities.AddAsync(entity, cancellationToken);
     }
 
     public void Remove(CmsEntity entity)
     {
-        _dbContext.CmsEntities.Remove(entity);
+        _writeDbContext.CmsEntities.Remove(entity);
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _writeDbContext.SaveChangesAsync(cancellationToken);
     }
 }

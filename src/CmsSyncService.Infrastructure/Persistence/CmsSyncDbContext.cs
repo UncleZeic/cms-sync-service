@@ -10,6 +10,11 @@ public class CmsSyncDbContext : DbContext
     {
     }
 
+    protected CmsSyncDbContext(DbContextOptions options)
+        : base(options)
+    {
+    }
+
     public DbSet<CmsEntity> CmsEntities => Set<CmsEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using CmsSyncService.Domain;
 using CmsSyncService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Xunit;
 
 namespace CmsSyncService.UnitTests.Infrastructure.Persistence;
@@ -11,11 +12,9 @@ public class CmsEntityRepositoryAdvancedTests
     [Fact]
     public async Task GetByIdsAsync_ReturnsMatchingEntities()
     {
-        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
-            .UseInMemoryDatabase(databaseName: "GetByIdsAsync_ReturnsMatchingEntities")
-            .Options;
+        const string databaseName = "GetByIdsAsync_ReturnsMatchingEntities";
 
-        var repo = CreateRepository(options);
+        var repo = CreateRepository(databaseName);
         var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         var entity2 = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         var entity3 = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
@@ -33,11 +32,9 @@ public class CmsEntityRepositoryAdvancedTests
     [Fact]
     public async Task GetByIdVisibleToUserAsync_Admin_GetsAnyEntity()
     {
-        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
-            .UseInMemoryDatabase(databaseName: "GetByIdVisibleToUserAsync_Admin_GetsAnyEntity")
-            .Options;
+        const string databaseName = "GetByIdVisibleToUserAsync_Admin_GetsAnyEntity";
 
-        var repo = CreateRepository(options);
+        var repo = CreateRepository(databaseName);
         var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         adminDisabled.SetAdminDisabled(true);
@@ -55,11 +52,9 @@ public class CmsEntityRepositoryAdvancedTests
     [Fact]
     public async Task GetByIdVisibleToUserAsync_NonAdmin_GetsOnlyVisible()
     {
-        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
-            .UseInMemoryDatabase(databaseName: "GetByIdVisibleToUserAsync_NonAdmin_GetsOnlyVisible")
-            .Options;
+        const string databaseName = "GetByIdVisibleToUserAsync_NonAdmin_GetsOnlyVisible";
 
-        var repo = CreateRepository(options);
+        var repo = CreateRepository(databaseName);
         var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         adminDisabled.SetAdminDisabled(true);
@@ -75,20 +70,27 @@ public class CmsEntityRepositoryAdvancedTests
     }
 
 
-    private CmsEntityRepository CreateRepository(DbContextOptions<CmsSyncDbContext> options)
+    private static CmsEntityRepository CreateRepository(string databaseName)
     {
-        var dbContext = new CmsSyncDbContext(options);
-        return new CmsEntityRepository(dbContext);
+        var databaseRoot = new InMemoryDatabaseRoot();
+        var writeOptions = new DbContextOptionsBuilder<CmsSyncDbContext>()
+            .UseInMemoryDatabase(databaseName, databaseRoot)
+            .Options;
+        var readOptions = new DbContextOptionsBuilder<CmsSyncReadDbContext>()
+            .UseInMemoryDatabase(databaseName, databaseRoot)
+            .Options;
+
+        var writeContext = new CmsSyncDbContext(writeOptions);
+        var readContext = new CmsSyncReadDbContext(readOptions);
+        return new CmsEntityRepository(writeContext, readContext);
     }
 
     [Fact]
     public async Task UpdateEntity_WorksCorrectly()
     {
-        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
-            .UseInMemoryDatabase(databaseName: "UpdateEntity_WorksCorrectly")
-            .Options;
+        const string databaseName = "UpdateEntity_WorksCorrectly";
 
-        var repo = CreateRepository(options);
+        var repo = CreateRepository(databaseName);
         var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         await repo.AddAsync(entity);
         await repo.SaveChangesAsync();
@@ -104,11 +106,9 @@ public class CmsEntityRepositoryAdvancedTests
     [Fact]
     public async Task GetVisibleToNormalUserAsync_ReturnsOnlyVisibleEntities()
     {
-        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
-            .UseInMemoryDatabase(databaseName: "GetVisibleToNormalUserAsync_ReturnsOnlyVisibleEntities")
-            .Options;
+        const string databaseName = "GetVisibleToNormalUserAsync_ReturnsOnlyVisibleEntities";
 
-        var repo = CreateRepository(options);
+        var repo = CreateRepository(databaseName);
         var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         adminDisabled.SetAdminDisabled(true);
@@ -126,11 +126,9 @@ public class CmsEntityRepositoryAdvancedTests
     [Fact]
     public async Task AddDuplicateId_ThrowsOrOverwrites()
     {
-        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
-            .UseInMemoryDatabase(databaseName: "AddDuplicateId_ThrowsOrOverwrites")
-            .Options;
+        const string databaseName = "AddDuplicateId_ThrowsOrOverwrites";
 
-        var repo = CreateRepository(options);
+        var repo = CreateRepository(databaseName);
         var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         var entity2 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         await repo.AddAsync(entity1);
@@ -144,18 +142,23 @@ public class CmsEntityRepositoryAdvancedTests
     [Fact]
     public async Task Query_FilterEntities()
     {
-        var options = new DbContextOptionsBuilder<CmsSyncDbContext>()
-            .UseInMemoryDatabase(databaseName: "Query_FilterEntities")
+        const string databaseName = "Query_FilterEntities";
+        var databaseRoot = new InMemoryDatabaseRoot();
+        var writeOptions = new DbContextOptionsBuilder<CmsSyncDbContext>()
+            .UseInMemoryDatabase(databaseName, databaseRoot)
+            .Options;
+        var readOptions = new DbContextOptionsBuilder<CmsSyncReadDbContext>()
+            .UseInMemoryDatabase(databaseName, databaseRoot)
             .Options;
 
-        var repo = CreateRepository(options);
+        var repo = new CmsEntityRepository(new CmsSyncDbContext(writeOptions), new CmsSyncReadDbContext(readOptions));
         var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         var entity2 = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
         await repo.AddAsync(entity1);
         await repo.AddAsync(entity2);
         await repo.SaveChangesAsync();
 
-        var dbContext = new CmsSyncDbContext(options);
+        var dbContext = new CmsSyncDbContext(writeOptions);
         var published = await dbContext.CmsEntities.FirstOrDefaultAsync(e => e.Published);
         Assert.NotNull(published);
         Assert.Equal("id1", published!.Id);

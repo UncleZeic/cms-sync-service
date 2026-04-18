@@ -14,7 +14,7 @@ public class CmsEntityAdminServiceTests
     public async Task SetAdminDisabledAsync_EntityNotFound_ReturnsFalse()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
-        repoMock.Setup(r => r.GetByIdAsync("id1", It.IsAny<CancellationToken>(), false)).ReturnsAsync((CmsEntity)null!);
+        repoMock.Setup(r => r.GetByIdAsync("id1", It.IsAny<CancellationToken>())).ReturnsAsync((CmsEntity)null!);
         var service = new CmsEntityAdminService(repoMock.Object);
         var result = await service.SetAdminDisabledAsync("id1", true, CancellationToken.None);
         Assert.False(result);
@@ -26,7 +26,7 @@ public class CmsEntityAdminServiceTests
         var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         entity.SetAdminDisabled(true);
         var repoMock = new Mock<ICmsEntityRepository>();
-        repoMock.Setup(r => r.GetByIdAsync("id2", It.IsAny<CancellationToken>(), false)).ReturnsAsync(entity);
+        repoMock.Setup(r => r.GetByIdAsync("id2", It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         var service = new CmsEntityAdminService(repoMock.Object);
         var result = await service.SetAdminDisabledAsync("id2", true, CancellationToken.None);
         Assert.True(result);
@@ -39,7 +39,7 @@ public class CmsEntityAdminServiceTests
         var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id3", Payload = "payload", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         entity.SetAdminDisabled(false);
         var repoMock = new Mock<ICmsEntityRepository>();
-        repoMock.Setup(r => r.GetByIdAsync("id3", It.IsAny<CancellationToken>(), false)).ReturnsAsync(entity);
+        repoMock.Setup(r => r.GetByIdAsync("id3", It.IsAny<CancellationToken>())).ReturnsAsync(entity);
         var service = new CmsEntityAdminService(repoMock.Object);
         var result = await service.SetAdminDisabledAsync("id3", true, CancellationToken.None);
         Assert.True(result);

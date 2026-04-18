@@ -16,7 +16,7 @@ public class CmsEntityAdminService : ICmsEntityAdminService
 
     public async Task<bool> SetAdminDisabledAsync(string id, bool adminDisabled, CancellationToken cancellationToken)
     {
-        var entity = await _repository.GetByIdAsync(id, cancellationToken, false);
+        var entity = await _repository.GetByIdAsync(id, cancellationToken);
         if (entity == null)
             return false;
         if (entity.AdminDisabled == adminDisabled)

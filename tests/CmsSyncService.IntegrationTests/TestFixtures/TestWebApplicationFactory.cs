@@ -23,10 +23,17 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             services.RemoveAll(typeof(DbContextOptions<CmsSyncDbContext>));
+            services.RemoveAll(typeof(DbContextOptions<CmsSyncReadDbContext>));
             services.RemoveAll(typeof(CmsSyncDbContext));
+            services.RemoveAll(typeof(CmsSyncReadDbContext));
 
             services.AddDbContext<CmsSyncDbContext>(options =>
                 options.UseSqlite(_connection));
+            services.AddDbContext<CmsSyncReadDbContext>(options =>
+            {
+                options.UseSqlite(_connection);
+                options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            });
 
             using var scope = services.BuildServiceProvider().CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();

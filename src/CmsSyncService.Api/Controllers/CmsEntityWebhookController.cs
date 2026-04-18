@@ -43,12 +43,12 @@ namespace CmsSyncService.Api.Controllers
                 {
                     if (isAdmin)
                     {
-                        var entities = await _repository.GetAllAsync(skip, take, cancellationToken, true);
+                        var entities = await _repository.GetAllAsync(skip, take, cancellationToken);
                         return entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList();
                     }
                     else
                     {
-                        var entities = await _repository.GetVisibleToNormalUserAsync(skip, take, cancellationToken, true);
+                        var entities = await _repository.GetVisibleToNormalUserAsync(skip, take, cancellationToken);
                         return entities.Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
                     }
                 }
@@ -87,7 +87,7 @@ namespace CmsSyncService.Api.Controllers
                 if (dto == null)
                 {
                     var isAdmin = User.IsInRole("Admin");
-                    var entity = await _repository.GetByIdVisibleToUserAsync(id, isAdmin, cancellationToken, true);
+                    var entity = await _repository.GetByIdVisibleToUserAsync(id, isAdmin, cancellationToken);
                     if (entity == null)
                         return NotFound();
                     dto = isAdmin ? entity.ToAdminDto() : entity.ToDto();

@@ -30,6 +30,11 @@ builder.Services.AddSingleton<IEntityCacheService, EntityCacheService>();
 // Dependency Injection registration
 builder.Services.AddDbContext<CmsSyncDbContext>(options =>
 	options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<CmsSyncReadDbContext>(options =>
+{
+	options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+	options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+});
 builder.Services.AddScoped<ICmsEventApplicationService, CmsEventApplicationService>();
 builder.Services.AddScoped<ICmsEntityRepository, CmsEntityRepository>();
 builder.Services.AddScoped<ICmsEntityAdminService, CmsEntityAdminService>();
