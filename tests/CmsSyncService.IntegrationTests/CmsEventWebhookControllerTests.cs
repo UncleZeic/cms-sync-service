@@ -5,15 +5,28 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using CmsSyncService.Api.Tests.TestFixtures;
+using CmsSyncService.Infrastructure.Persistence;
 
 namespace CmsSyncService.Api.Tests;
 
 [
 Collection("DbWriteTests")]
-public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFactory>
 {
+    private readonly TestWebApplicationFactory _factory;
+
+    public CmsEventWebhookControllerTests(TestWebApplicationFactory factory)
+    {
+        _factory = factory;
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();
+        CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
+    }
+
     [Fact]
     public async Task IngestEventsPostWebhook_Publish_Modify_Unpublish_Scenario()
     {
@@ -84,13 +97,6 @@ public class CmsEventWebhookControllerTests : IClassFixture<WebApplicationFactor
         Assert.False(root.GetProperty("published").GetBoolean());
         Assert.Equal(2, root.GetProperty("version").GetInt32());
     }
-    private readonly WebApplicationFactory<Program> _factory;
-
-    public CmsEventWebhookControllerTests(WebApplicationFactory<Program> factory)
-    {
-        _factory = factory;
-    }
-
     private static void AddBasicAuthHeader(HttpClient client)
     {
         var credentials = "admin:7FDD33AD-3FD3-41B8-AC05-5A9122ABC086";

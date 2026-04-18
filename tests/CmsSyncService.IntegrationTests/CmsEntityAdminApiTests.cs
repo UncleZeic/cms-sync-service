@@ -4,8 +4,6 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using CmsSyncService.Application.DTOs;
 using CmsSyncService.Api.Tests.TestFixtures;
@@ -14,32 +12,18 @@ using CmsSyncService.Api.Tests.TestFixtures;
 namespace CmsSyncService.Api.Tests;
 
 [Collection("DbWriteTests")]
-public class CmsEntityAdminApiTests : IClassFixture<WebApplicationFactory<Program>>
+public class CmsEntityAdminApiTests : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebApplicationFactory _factory;
 
-    private static bool _dbSeeded = false;
-    private static readonly object _seedLock = new();
-
-    public CmsEntityAdminApiTests(WebApplicationFactory<Program> factory)
+    public CmsEntityAdminApiTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
-        // Seed the DB only once for all tests
-        if (!_dbSeeded)
-        {
-            lock (_seedLock)
-            {
-                if (!_dbSeeded)
-                {
-                    using var scope = _factory.Services.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncService.Infrastructure.Persistence.CmsSyncDbContext>();
-                    dbContext.Database.Migrate();
-                    CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
-                    CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
-                    _dbSeeded = true;
-                }
-            }
-        }
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncService.Infrastructure.Persistence.CmsSyncDbContext>();
+        CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
+        CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
     }
 
     private async Task<(HttpClient client, string entityId)> CreateClientAndGetEntityIdAsync(string username, string password)

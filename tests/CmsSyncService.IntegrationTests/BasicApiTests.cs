@@ -1,15 +1,15 @@
 using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.Testing;
+using CmsSyncService.Api.Tests.TestFixtures;
 using Xunit;
 
 namespace CmsSyncService.Api.Tests;
 
-public class BasicApiTests : IClassFixture<WebApplicationFactory<Program>>
+public class BasicApiTests : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly TestWebApplicationFactory _factory;
 
-    public BasicApiTests(WebApplicationFactory<Program> factory)
+    public BasicApiTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
     }

@@ -1,41 +1,26 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using System.Net.Http.Json;
 using CmsSyncService.Api.Tests.TestFixtures;
 using CmsSyncService.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 
 namespace CmsSyncService.Api.Tests;
 
-public class CmsEntityControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
-    private static bool _dbSeeded = false;
-    private static readonly object _seedLock = new();
+    private readonly TestWebApplicationFactory _factory;
 
-    public CmsEntityControllerTests(WebApplicationFactory<Program> factory)
+    public CmsEntityControllerTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
-        // Seed the DB only once for all tests
-        if (!_dbSeeded)
-        {
-            lock (_seedLock)
-            {
-                if (!_dbSeeded)
-                {
-                    using var scope = _factory.Services.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();
-                    dbContext.Database.Migrate();
-                    CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
-                    CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
-                    _dbSeeded = true;
-                }
-            }
-        }
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();
+        CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
+        CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
     }
 
     private static void AddBasicAuthHeader(HttpClient client)
