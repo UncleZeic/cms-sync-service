@@ -81,7 +81,11 @@ public class EntityCacheService : IEntityCacheService
     private void Set<T>(string key, T value, bool isList) where T : class
     {
         var options = new MemoryCacheEntryOptions();
-        if (isList || key == EntityCacheKeys.GetEntityListKey(true) || key == EntityCacheKeys.GetEntityListKey(false))
+        if (isList ||
+            key == EntityCacheKeys.GetEntityListKey(true) ||
+            key == EntityCacheKeys.GetEntityListKey(false) ||
+            key == EntityCacheKeys.GetDefaultPagedEntityListKey(true) ||
+            key == EntityCacheKeys.GetDefaultPagedEntityListKey(false))
         {
             options.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_entityListCacheMinutes);
             options.SlidingExpiration = TimeSpan.FromMinutes(_entityListCacheMinutes / 2.0);
@@ -107,5 +111,4 @@ public interface IEntityCacheService
     void Remove(string key);
     T? GetOrCreate<T>(string key, Func<T> factory, bool isList = false) where T : class;
 }
-
 

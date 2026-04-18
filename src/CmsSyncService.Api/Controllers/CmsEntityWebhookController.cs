@@ -54,9 +54,9 @@ namespace CmsSyncService.Api.Controllers
                 }
 
                 // Only cache the most common first page (skip=0, take=100)
-                if (skip == 0 && take == 100)
+                if (skip == EntityCacheKeys.DefaultSkip && take == EntityCacheKeys.DefaultTake)
                 {
-                    string cacheKey = EntityCacheKeys.GetPagedEntityListKey(isAdmin, skip, take);
+                    string cacheKey = EntityCacheKeys.GetDefaultPagedEntityListKey(isAdmin);
                     var cached = _cacheService.Get<List<ICmsEntityDto>>(cacheKey);
                     if (cached != null)
                         return Ok(cached);
@@ -112,8 +112,8 @@ namespace CmsSyncService.Api.Controllers
                 if (!result)
                     return NotFound();
                 // Invalidate entity list caches for both admin and viewer
-                _cacheService.Remove(EntityCacheKeys.GetEntityListKey(true));
-                _cacheService.Remove(EntityCacheKeys.GetEntityListKey(false));
+                _cacheService.Remove(EntityCacheKeys.GetDefaultPagedEntityListKey(true));
+                _cacheService.Remove(EntityCacheKeys.GetDefaultPagedEntityListKey(false));
                 // Also invalidate this entity's cache
                 _cacheService.Remove(EntityCacheKeys.GetEntityKey(id, true));
                 _cacheService.Remove(EntityCacheKeys.GetEntityKey(id, false));

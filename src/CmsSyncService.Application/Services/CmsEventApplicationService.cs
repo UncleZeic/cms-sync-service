@@ -130,8 +130,8 @@ public class CmsEventApplicationService : ICmsEventApplicationService
         await _cmsEntityRepository.SaveChangesAsync(cancellationToken);
 
         // Invalidate cache for affected entities and entity lists
-        _cache.Remove(Application.Caching.EntityCacheKeys.GetEntityListKey(true));
-        _cache.Remove(Application.Caching.EntityCacheKeys.GetEntityListKey(false));
+        _cache.Remove(Application.Caching.EntityCacheKeys.GetDefaultPagedEntityListKey(true));
+        _cache.Remove(Application.Caching.EntityCacheKeys.GetDefaultPagedEntityListKey(false));
         foreach (var id in affectedIds)
         {
             _cache.Remove(Application.Caching.EntityCacheKeys.GetEntityKey(id, true));
