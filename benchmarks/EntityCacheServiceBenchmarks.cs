@@ -1,7 +1,6 @@
 
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
-using BenchmarkDotNet.Jobs;
 using Microsoft.Extensions.Caching.Memory;
 using CmsSyncService.Application.Caching;
 using Microsoft.Extensions.Options;
@@ -12,7 +11,6 @@ namespace CmsSyncService.Benchmarks;
 
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net60)]
 public class EntityCacheServiceBenchmarks
 {
     private EntityCacheService _cacheService = null!;
