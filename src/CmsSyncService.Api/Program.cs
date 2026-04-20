@@ -44,7 +44,10 @@ var app = builder.Build();
 
 
 // WARNING: Basic Auth credentials are only secure over HTTPS. Do not deploy without TLS.
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+	app.UseHttpsRedirection();
+}
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/health", [AllowAnonymous] () => Results.Text("Healthy"));
