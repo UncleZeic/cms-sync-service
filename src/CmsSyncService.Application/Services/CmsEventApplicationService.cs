@@ -25,13 +25,16 @@ public class CmsEventApplicationService : ICmsEventApplicationService
     {
         ArgumentNullException.ThrowIfNull(events);
         var batch = events as IReadOnlyCollection<CmsEventDto> ?? events.ToList();
-        int total = batch.Count;
-        int processed = 0, skipped = 0, validationFailed = 0, versionConflict = 0;
+        var total = batch.Count;
+        var summary = new BatchProcessingSummary();
         _logger.LogInformation("Processing batch of {Count} CMS events", total);
 
-        var affectedIds = new HashSet<string>();
+        HashSet<string> affectedIds = [];
         await _cmsEntityRepository.ExecuteInTransactionAsync(async () =>
         {
+            var attemptSummary = new BatchProcessingSummary();
+            var attemptAffectedIds = new HashSet<string>();
+
             // Fetch all necessary entities inside the transaction so updates are committed atomically with SaveChanges.
             var eventIds = batch
                 .Where(e => !string.IsNullOrWhiteSpace(e.Id))
@@ -48,7 +51,7 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                 var context = new ValidationContext(dto);
                 if (!Validator.TryValidateObject(dto, context, validationResults, true))
                 {
-                    validationFailed++;
+                    attemptSummary.ValidationFailed++;
                     foreach (var result in validationResults)
                     {
                         _logger.LogWarning("Event validation failed for Id: {Id}, Reason: {Reason}", dto.Id, result.ErrorMessage);
@@ -68,13 +71,13 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                         {
                             _logger.LogInformation("Deleting entity with Id: {Id}", cmsEvent.Id);
                             _cmsEntityRepository.Remove(existingEntity);
-                            processed++;
-                            affectedIds.Add(cmsEvent.Id);
+                            attemptSummary.Processed++;
+                            attemptAffectedIds.Add(cmsEvent.Id);
                         }
                         else
                         {
                             _logger.LogWarning("Delete event for non-existent entity Id: {Id}", cmsEvent.Id);
-                            skipped++;
+                            attemptSummary.Skipped++;
                         }
                         break;
 
@@ -84,21 +87,21 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                             _logger.LogInformation("Publishing new entity with Id: {Id}", cmsEvent.Id);
                             var newEntity = CmsEntity.CreatePublished(cmsEvent);
                             await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
-                            processed++;
-                            affectedIds.Add(cmsEvent.Id);
+                            attemptSummary.Processed++;
+                            attemptAffectedIds.Add(cmsEvent.Id);
                         }
                         else if (cmsEvent.Version < existingEntity.Version)
                         {
                             _logger.LogWarning("Publish event version conflict for Id: {Id}. Incoming version: {IncomingVersion}, Current version: {CurrentVersion}", cmsEvent.Id, cmsEvent.Version, existingEntity.Version);
-                            versionConflict++;
-                            skipped++;
+                            attemptSummary.VersionConflicts++;
+                            attemptSummary.Skipped++;
                         }
                         else
                         {
                             _logger.LogInformation("Updating published entity with Id: {Id}", cmsEvent.Id);
                             existingEntity.ApplyPublish(cmsEvent);
-                            processed++;
-                            affectedIds.Add(cmsEvent.Id);
+                            attemptSummary.Processed++;
+                            attemptAffectedIds.Add(cmsEvent.Id);
                         }
                         break;
 
@@ -108,35 +111,39 @@ public class CmsEventApplicationService : ICmsEventApplicationService
                             _logger.LogInformation("Unpublishing new entity with Id: {Id}", cmsEvent.Id);
                             var newEntity = CmsEntity.CreateUnpublished(cmsEvent);
                             await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
-                            processed++;
-                            affectedIds.Add(cmsEvent.Id);
+                            attemptSummary.Processed++;
+                            attemptAffectedIds.Add(cmsEvent.Id);
                         }
                         else if (cmsEvent.Version < existingEntity.Version)
                         {
                             _logger.LogWarning("Unpublish event version conflict for Id: {Id}. Incoming version: {IncomingVersion}, Current version: {CurrentVersion}", cmsEvent.Id, cmsEvent.Version, existingEntity.Version);
-                            versionConflict++;
-                            skipped++;
+                            attemptSummary.VersionConflicts++;
+                            attemptSummary.Skipped++;
                         }
                         else
                         {
                             _logger.LogInformation("Updating unpublished entity with Id: {Id}", cmsEvent.Id);
                             existingEntity.ApplyUnpublish(cmsEvent);
-                            processed++;
-                            affectedIds.Add(cmsEvent.Id);
+                            attemptSummary.Processed++;
+                            attemptAffectedIds.Add(cmsEvent.Id);
                         }
                         break;
 
                     default:
                         _logger.LogError("Unsupported CMS event type '{EventType}' for Id: {Id}", cmsEvent.Type, cmsEvent.Id);
-                        skipped++;
+                        attemptSummary.Skipped++;
                         break;
                 }
             }
-            _logger.LogInformation("Batch summary: total={Total}, processed={Processed}, skipped={Skipped}, validationFailed={ValidationFailed}, versionConflicts={VersionConflicts}",
-                total, processed, skipped, validationFailed, versionConflict);
             _logger.LogInformation("Saving changes after processing batch");
             await _cmsEntityRepository.SaveChangesAsync(cancellationToken);
+
+            summary = attemptSummary;
+            affectedIds = attemptAffectedIds;
         }, cancellationToken);
+
+        _logger.LogInformation("Batch summary: total={Total}, processed={Processed}, skipped={Skipped}, validationFailed={ValidationFailed}, versionConflicts={VersionConflicts}",
+            total, summary.Processed, summary.Skipped, summary.ValidationFailed, summary.VersionConflicts);
 
         // Invalidate cache after the transaction commits.
         _cache.Remove(EntityCacheKeys.GetDefaultPagedEntityListKey(true));
@@ -146,5 +153,13 @@ public class CmsEventApplicationService : ICmsEventApplicationService
             _cache.Remove(EntityCacheKeys.GetEntityKey(id, true));
             _cache.Remove(EntityCacheKeys.GetEntityKey(id, false));
         }
+    }
+
+    private sealed class BatchProcessingSummary
+    {
+        public int Processed { get; set; }
+        public int Skipped { get; set; }
+        public int ValidationFailed { get; set; }
+        public int VersionConflicts { get; set; }
     }
 }

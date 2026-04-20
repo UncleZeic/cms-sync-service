@@ -5,7 +5,7 @@ services:
     volumes:
       - .:/src
     environment:
-      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword
+      ConnectionStrings__DefaultConnection: ${DEFAULT_CONNECTION:-Host=db;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword}
       PATH: /root/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     command: >
       sh -c " dotnet tool install --global dotnet-ef --version 10.0 && export PATH=$PATH:/root/.dotnet/tools && dotnet restore src/CmsSyncService.Api/CmsSyncService.Api.csproj && dotnet ef database update --project src/CmsSyncService.Infrastructure --startup-project src/CmsSyncService.Api"
@@ -19,22 +19,22 @@ services:
       dockerfile: Dockerfile
     container_name: cmssyncservice-api
     ports:
-      - "8080:8080"
+      - "${API_PORT:-8080}:8080"
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword
-      ConnectionStrings__Redis: redis:6379
-      RabbitMQ__Enabled: true
-      RabbitMQ__HostName: rabbitmq
-      RabbitMQ__Port: 5672
-      RabbitMQ__UserName: guest
-      RabbitMQ__Password: guest
-      RabbitMQ__QueueName: cms-events
-      RabbitMQ__RetryQueueName: cms-events.retry
-      RabbitMQ__DeadLetterQueueName: cms-events.dead-letter
-      RabbitMQ__RetryDelayMilliseconds: 5000
-      RabbitMQ__MaxRetryAttempts: 3
+      ConnectionStrings__DefaultConnection: ${DEFAULT_CONNECTION:-Host=db;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword}
+      ConnectionStrings__Redis: ${REDIS_CONNECTION:-redis:6379}
+      RabbitMQ__Enabled: ${RABBITMQ_ENABLED:-true}
+      RabbitMQ__HostName: ${RABBITMQ_HOSTNAME:-rabbitmq}
+      RabbitMQ__Port: ${RABBITMQ_PORT:-5672}
+      RabbitMQ__UserName: ${RABBITMQ_USERNAME:-guest}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-guest}
+      RabbitMQ__QueueName: ${RABBITMQ_QUEUE_NAME:-cms-events}
+      RabbitMQ__RetryQueueName: ${RABBITMQ_RETRY_QUEUE_NAME:-cms-events.retry}
+      RabbitMQ__DeadLetterQueueName: ${RABBITMQ_DEAD_LETTER_QUEUE_NAME:-cms-events.dead-letter}
+      RabbitMQ__RetryDelayMilliseconds: ${RABBITMQ_RETRY_DELAY_MILLISECONDS:-5000}
+      RabbitMQ__MaxRetryAttempts: ${RABBITMQ_MAX_RETRY_ATTEMPTS:-3}
     depends_on:
       db:
         condition: service_healthy
@@ -47,11 +47,11 @@ services:
     container_name: cmssyncservice-db
     restart: no
     environment:
-      POSTGRES_DB: cmssync
-      POSTGRES_USER: cmsuser
-      POSTGRES_PASSWORD: cmspassword
+      POSTGRES_DB: ${POSTGRES_DB:-cmssync}
+      POSTGRES_USER: ${POSTGRES_USER:-cmsuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cmspassword}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

@@ -18,8 +18,18 @@ public class CmsEntityRepository : ICmsEntityRepository
 
     public async Task<List<CmsEntity>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
     {
+        var idList = ids
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToArray();
+
+        if (idList.Length == 0)
+        {
+            return [];
+        }
+
         return await _writeDbContext.CmsEntities
-            .Where(e => ids.Contains(e.Id))
+            .Where(e => idList.Contains(e.Id))
             .ToListAsync(cancellationToken);
     }
 
@@ -85,8 +95,13 @@ public class CmsEntityRepository : ICmsEntityRepository
 
     public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _writeDbContext.Database.BeginTransactionAsync(cancellationToken);
-        await operation();
-        await transaction.CommitAsync(cancellationToken);
+        var strategy = _writeDbContext.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _writeDbContext.Database.BeginTransactionAsync(cancellationToken);
+            await operation();
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 }

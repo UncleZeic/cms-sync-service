@@ -15,14 +15,24 @@ RUN dotnet restore src/CmsSyncService.Api/CmsSyncService.Api.csproj
 
 COPY . .
 
+ARG IMAGE_VERSION=0.0.0
+ARG COMMIT_SHA=unknown
 RUN dotnet publish src/CmsSyncService.Api/CmsSyncService.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+
+ARG IMAGE_VERSION=0.0.0
+ARG COMMIT_SHA=unknown
+LABEL org.opencontainers.image.title="CMS Sync Service" \
+      org.opencontainers.image.description="CMS webhook ingestion and entity read API" \
+      org.opencontainers.image.version=$IMAGE_VERSION \
+      org.opencontainers.image.revision=$COMMIT_SHA
 
 COPY --from=build /app/publish .
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
+USER $APP_UID
 ENTRYPOINT ["dotnet", "CmsSyncService.Api.dll"]

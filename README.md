@@ -28,6 +28,20 @@ Start PostgreSQL, Redis, RabbitMQ, run migrations, and start the API:
 docker compose up --build
 ```
 
+Compose reads environment overrides from `.env`. Start from the template when you need local overrides:
+
+macOS/Linux:
+
+```sh
+cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
 The API is available at:
 
 ```text
@@ -72,8 +86,19 @@ Roles:
 - `viewer`: can read published, non-disabled entities
 - `admin`: can read all entities and set the API-only admin disabled flag
 
+## Security
+Security is handled as a cross-cutting concern:
+
+- Authentication uses Basic Authentication with SHA256 password hashes for this exercise.
+- Authorization is role-based at the controller/action level.
+- Production requests are redirected to HTTPS and HSTS is enabled outside Development.
+- Forwarded headers are enabled so TLS termination at a reverse proxy or load balancer is respected.
+- Responses include defensive headers such as `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and a restrictive Content Security Policy.
+- Secrets should be supplied through environment variables, `.env` for local Docker development, or the target platform's secret store. Do not use the development credentials in production.
+
 ## API Endpoints
 - `GET /health`: public health check
+- `GET /health/ready`: dependency-aware health check endpoint
 - `POST /cms/events`: ingest a batch of CMS events, requires `cms-event-user`
 - `GET /cms/entities`: list entities with pagination metadata, requires `viewer` or `admin`
 - `GET /cms/entities/{id}`: get one visible entity, requires `viewer` or `admin`
@@ -125,6 +150,14 @@ When RabbitMQ mode is enabled, `POST /cms/events` returns `202 Accepted` after e
 
 Event versions protect against stale updates arriving out of order. Event batches are saved inside an explicit database transaction, and cache invalidation happens only after the transaction commits. RabbitMQ messages that repeatedly fail processing are moved to a dead-letter queue instead of being retried forever.
 
+## Data Model
+The persistence model is intentionally hybrid:
+
+- Relational columns model operational state: entity ID, version, publish state, admin-disabled state, and update timestamp.
+- CMS payload is stored as PostgreSQL `jsonb`, because its schema belongs to the upstream CMS and can evolve independently.
+- Read APIs currently return the stored payload without querying inside it, so the service avoids premature payload-specific tables.
+- If future product requirements need filtering or ranking by payload fields, those fields should become explicit relational columns or dedicated indexes instead of ad hoc JSON scans.
+
 ## Testing
 Unit tests and integration tests can be run with:
 
@@ -143,8 +176,70 @@ Integration tests use SQLite in-memory through `TestWebApplicationFactory`, so P
 - Redis distributed cache
 - RabbitMQ asynchronous event queue
 - EF Core with Npgsql
+- OpenTelemetry tracing and metrics
 - SQLite in-memory for integration tests
 - BenchmarkDotNet
+
+## Observability
+The API emits structured logs with trace/span identifiers, OpenTelemetry traces, and OpenTelemetry metrics.
+
+Current instrumentation includes:
+- ASP.NET Core request traces and metrics
+- outgoing HTTP client traces and metrics
+- EF Core query traces
+- .NET runtime metrics
+- console exporters for local and CI visibility
+
+The service also exposes:
+- `/health`: lightweight public liveness endpoint
+- `/health/ready`: ASP.NET Core health-check endpoint for readiness probes
+
+## Resilience
+The service treats transient infrastructure failures as expected production behavior:
+
+- PostgreSQL access uses EF Core/Npgsql retry-on-failure with bounded exponential backoff.
+- Explicit write transactions run through EF Core's execution strategy so transient failures can safely retry the whole unit of work.
+- Retry limits are configurable under `Resilience:Database`.
+
+Future external integrations should use the same pattern deliberately:
+
+- outbound HTTP clients: timeout, retry with jitter, circuit breaker, and fallback where stale data is acceptable
+- background queues: dead-letter queues and bounded redelivery instead of infinite requeue loops
+- independent dependencies: bulkhead limits so one slow dependency cannot consume all request capacity
+
+## Coordination & Consistency
+The application service is the orchestration boundary for CMS event ingestion.
+
+- The upstream CMS remains the source of truth for content changes.
+- This service owns the projected read model stored in PostgreSQL.
+- A CMS event batch is processed as one local database transaction, so entity changes commit atomically.
+- Version checks make event handling idempotent and reject stale updates.
+- Cache invalidation happens only after the transaction commits.
+- The service does not use distributed transactions; if future workflows span multiple services, use a saga/outbox pattern with explicit compensating actions and idempotent consumers.
+
+## Data Structures & Query Efficiency
+The service keeps hot paths explicit so scaling is driven by data shape, not only infrastructure:
+
+- CMS event batches load affected entities once and process them through an in-memory dictionary by entity ID.
+- Duplicate or blank IDs are removed before batch lookups, avoiding unnecessary database parameters and round trips.
+- Entity listings use composite indexes that match the query predicates and sort order:
+  - admin listing: `UpdatedAtUtc DESC, Id`
+  - viewer listing: `Published, AdminDisabled, UpdatedAtUtc DESC, Id`
+
+These indexes keep common list pages aligned with B-tree access patterns instead of relying on large table scans and expensive sorts.
+
+## CI/CD
+GitHub Actions runs restore, build, unit tests, integration tests, and benchmarks on pushes and pull requests to `main`.
+
+On pushes to `main`, CI also builds and publishes the API container image to GitHub Container Registry:
+
+```text
+ghcr.io/<owner>/<repo>:<commit-sha>
+ghcr.io/<owner>/<repo>:main
+ghcr.io/<owner>/<repo>:latest
+```
+
+Pull requests build the image without publishing it.
 
 ## Performance Benchmarks
 This project uses [BenchmarkDotNet](https://benchmarkdotnet.org/) to track cache performance over time. Benchmarks are run automatically in CI, and results are uploaded as artifacts.
