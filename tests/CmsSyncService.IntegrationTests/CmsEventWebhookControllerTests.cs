@@ -12,8 +12,7 @@ using CmsSyncService.Infrastructure.Persistence;
 
 namespace CmsSyncService.Api.Tests;
 
-[
-Collection("DbWriteTests")]
+[Collection("DbWriteTests")]
 public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;

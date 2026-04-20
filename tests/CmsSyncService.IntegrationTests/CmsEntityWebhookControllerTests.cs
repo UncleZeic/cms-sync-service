@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CmsSyncService.Api.Tests;
 
+[Collection("DbWriteTests")]
 public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;

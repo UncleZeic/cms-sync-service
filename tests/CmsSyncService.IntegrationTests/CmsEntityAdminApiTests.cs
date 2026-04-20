@@ -62,6 +62,3 @@ public class CmsEntityAdminApiTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Forbidden, patchResponse.StatusCode);
     }
 }
-
-[CollectionDefinition("DbWriteTests", DisableParallelization = true)]
-public class DbWriteTestsCollection : ICollectionFixture<object> { }
