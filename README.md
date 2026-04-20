@@ -25,8 +25,16 @@ docker compose up --build
 
 Compose reads environment overrides from `.env`. Start from the template when you need local overrides:
 
+macOS/Linux:
+
 ```sh
 cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 The API is available at:
