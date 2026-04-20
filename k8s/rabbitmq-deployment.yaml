@@ -23,6 +23,17 @@ spec:
               containerPort: 5672
             - name: management
               containerPort: 15672
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cms-sync-secrets
+                  key: RabbitMQ__UserName
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: cms-sync-secrets
+                  key: RabbitMQ__Password
           readinessProbe:
             exec:
               command: ["rabbitmq-diagnostics", "-q", "ping"]

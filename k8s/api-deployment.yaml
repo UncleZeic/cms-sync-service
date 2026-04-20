@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: cms-sync-api
   namespace: cms-sync
-  labels:
-    app: cms-sync-api
 spec:
   replicas: 2
   selector:
@@ -17,31 +15,31 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/your-org/cms-sync-service:latest
+          image: ghcr.io/OWNER/REPO:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8080
           envFrom:
             - configMapRef:
-                name: cms-sync-api-config
+                name: cms-sync-config
             - secretRef:
-                name: cms-sync-api-secrets
+                name: cms-sync-secrets
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: http
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 2
+            timeoutSeconds: 3
             failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 20
-            timeoutSeconds: 2
+            timeoutSeconds: 3
             failureThreshold: 3
           resources:
             requests:

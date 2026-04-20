@@ -1,24 +1,28 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cms-sync-api-config
+  name: cms-sync-config
   namespace: cms-sync
 data:
-  ASPNETCORE_ENVIRONMENT: Production
-  ASPNETCORE_URLS: http://+:8080
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  Logging__LogLevel__Default: "Information"
+  Logging__LogLevel__Microsoft.AspNetCore: "Warning"
+  Observability__ServiceName: "cms-sync-service"
   CacheDurations__Entity: "5"
   CacheDurations__EntityList: "2"
-  RabbitMQ__Enabled: "true"
-  RabbitMQ__HostName: cms-sync-rabbitmq
-  RabbitMQ__Port: "5672"
-  RabbitMQ__VirtualHost: /
-  RabbitMQ__QueueName: cms-events
-  RabbitMQ__RetryQueueName: cms-events.retry
-  RabbitMQ__DeadLetterQueueName: cms-events.dead-letter
-  RabbitMQ__RetryDelayMilliseconds: "5000"
-  RabbitMQ__MaxRetryAttempts: "3"
+  Resilience__Database__MaxRetryCount: "5"
+  Resilience__Database__MaxRetryDelaySeconds: "10"
   RateLimiting__CmsEventIngestion__PermitLimit: "60"
   RateLimiting__CmsEventIngestion__WindowSeconds: "60"
   RateLimiting__CmsEventIngestion__QueueLimit: "0"
-  Logging__LogLevel__Default: Information
-  Logging__LogLevel__Microsoft.AspNetCore: Warning
+  ConnectionStrings__Redis: "cms-sync-redis:6379"
+  RabbitMQ__Enabled: "true"
+  RabbitMQ__HostName: "cms-sync-rabbitmq"
+  RabbitMQ__Port: "5672"
+  RabbitMQ__VirtualHost: "/"
+  RabbitMQ__QueueName: "cms-events"
+  RabbitMQ__RetryQueueName: "cms-events.retry"
+  RabbitMQ__DeadLetterQueueName: "cms-events.dead-letter"
+  RabbitMQ__RetryDelayMilliseconds: "5000"
+  RabbitMQ__MaxRetryAttempts: "3"

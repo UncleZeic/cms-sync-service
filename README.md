@@ -241,6 +241,29 @@ ghcr.io/<owner>/<repo>:latest
 
 Pull requests build the image without publishing it.
 
+## Kubernetes
+This branch includes Kubernetes manifests under `k8s/` as bonus production-scaling infrastructure.
+
+The manifests demonstrate:
+- API deployment with two replicas
+- liveness and readiness probes using `/health` and `/health/ready`
+- ClusterIP service and NGINX ingress
+- ConfigMap and Secret separation
+- demo in-cluster PostgreSQL, Redis, and RabbitMQ dependencies
+- resource requests and limits
+
+Before applying, update:
+- `k8s/api-deployment.yaml`: replace `ghcr.io/OWNER/REPO:latest` with the published image
+- `k8s/secret.example.yaml`: replace placeholder passwords and user password hashes
+
+Apply with:
+
+```sh
+kubectl apply -k k8s
+```
+
+For a real production deployment, prefer managed PostgreSQL, Redis, and RabbitMQ services. Database migrations should run as a controlled release step or migration job before rolling out new API pods.
+
 ## Performance Benchmarks
 This project uses [BenchmarkDotNet](https://benchmarkdotnet.org/) to track cache performance over time. Benchmarks are run automatically in CI, and results are uploaded as artifacts.
 
