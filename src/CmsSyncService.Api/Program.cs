@@ -6,23 +6,25 @@ using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.Services;
 using CmsSyncService.Infrastructure.Persistence;
 using CmsSyncService.Application.Caching;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using Microsoft.AspNetCore.HttpOverrides;
 
 
 var builder = WebApplication.CreateBuilder(args);
 var serviceName = builder.Configuration.GetValue("Observability:ServiceName", "cms-sync-service");
+var databaseRetryMaxCount = builder.Configuration.GetValue("Resilience:Database:MaxRetryCount", 5);
+var databaseRetryMaxDelay = TimeSpan.FromSeconds(builder.Configuration.GetValue("Resilience:Database:MaxRetryDelaySeconds", 10));
 
 builder.Logging.Configure(options =>
 {
 	options.ActivityTrackingOptions =
 		ActivityTrackingOptions.TraceId |
-	ActivityTrackingOptions.SpanId |
+		ActivityTrackingOptions.SpanId |
 		ActivityTrackingOptions.ParentId;
 });
 
@@ -38,7 +40,7 @@ builder.Services.AddAuthentication(options =>
 	options.DefaultChallengeScheme = "BasicAuthentication";
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
-	builder.Services.AddMemoryCache();
+builder.Services.AddMemoryCache();
 builder.Services.AddHealthChecks();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -107,10 +109,20 @@ builder.Services.AddSingleton<IEntityCacheService, EntityCacheService>();
 
 // Dependency Injection registration
 builder.Services.AddDbContext<CmsSyncDbContext>(options =>
-	options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+	options.UseNpgsql(
+		builder.Configuration.GetConnectionString("DefaultConnection"),
+		npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
+			databaseRetryMaxCount,
+			databaseRetryMaxDelay,
+			errorCodesToAdd: null)));
 builder.Services.AddDbContext<CmsSyncReadDbContext>(options =>
 {
-	options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+	options.UseNpgsql(
+		builder.Configuration.GetConnectionString("DefaultConnection"),
+		npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
+			databaseRetryMaxCount,
+			databaseRetryMaxDelay,
+			errorCodesToAdd: null));
 	options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 });
 builder.Services.AddScoped<ICmsEventApplicationService, CmsEventApplicationService>();

@@ -172,6 +172,19 @@ The service also exposes:
 - `/health`: lightweight public liveness endpoint
 - `/health/ready`: ASP.NET Core health-check endpoint for readiness probes
 
+## Resilience
+The service treats transient infrastructure failures as expected production behavior:
+
+- PostgreSQL access uses EF Core/Npgsql retry-on-failure with bounded exponential backoff.
+- Explicit write transactions run through EF Core's execution strategy so transient failures can safely retry the whole unit of work.
+- Retry limits are configurable under `Resilience:Database`.
+
+Future external integrations should use the same pattern deliberately:
+
+- outbound HTTP clients: timeout, retry with jitter, circuit breaker, and fallback where stale data is acceptable
+- background queues: dead-letter queues and bounded redelivery instead of infinite requeue loops
+- independent dependencies: bulkhead limits so one slow dependency cannot consume all request capacity
+
 ## CI/CD
 GitHub Actions runs restore, build, unit tests, integration tests, and benchmarks on pushes and pull requests to `main`.
 
