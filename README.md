@@ -193,6 +193,16 @@ Future external integrations should use the same pattern deliberately:
 - background queues: dead-letter queues and bounded redelivery instead of infinite requeue loops
 - independent dependencies: bulkhead limits so one slow dependency cannot consume all request capacity
 
+## Coordination & Consistency
+The application service is the orchestration boundary for CMS event ingestion.
+
+- The upstream CMS remains the source of truth for content changes.
+- This service owns the projected read model stored in PostgreSQL.
+- A CMS event batch is processed as one local database transaction, so entity changes commit atomically.
+- Version checks make event handling idempotent and reject stale updates.
+- Cache invalidation happens only after the transaction commits.
+- The service does not use distributed transactions; if future workflows span multiple services, use a saga/outbox pattern with explicit compensating actions and idempotent consumers.
+
 ## Data Structures & Query Efficiency
 The service keeps hot paths explicit so scaling is driven by data shape, not only infrastructure:
 
