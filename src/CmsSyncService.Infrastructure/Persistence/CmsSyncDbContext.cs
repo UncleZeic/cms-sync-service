@@ -44,10 +44,10 @@ public class CmsSyncDbContext : DbContext
             {
                 updatedAtProperty.HasConversion(new DateTimeOffsetToBinaryConverter());
             }
-            // Composite index on Published, AdminDisabled
-            entity.HasIndex(x => new { x.Published, x.AdminDisabled });
-            // Index for ordering by UpdatedAtUtc and Id
-            entity.HasIndex(x => new { x.UpdatedAtUtc, x.Id });
+            entity.HasIndex(x => new { x.UpdatedAtUtc, x.Id })
+                .IsDescending(true, false);
+            entity.HasIndex(x => new { x.Published, x.AdminDisabled, x.UpdatedAtUtc, x.Id })
+                .IsDescending(false, false, true, false);
         });
     }
 }

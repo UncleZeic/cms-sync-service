@@ -46,9 +46,11 @@ namespace CmsSyncService.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Published", "AdminDisabled");
+                    b.HasIndex("Published", "AdminDisabled", "UpdatedAtUtc", "Id")
+                        .IsDescending(false, false, true, false);
 
-                    b.HasIndex("UpdatedAtUtc", "Id");
+                    b.HasIndex("UpdatedAtUtc", "Id")
+                        .IsDescending(true, false);
 
                     b.ToTable("cms_entities", (string)null);
                 });

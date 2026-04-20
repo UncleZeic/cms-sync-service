@@ -185,6 +185,17 @@ Future external integrations should use the same pattern deliberately:
 - background queues: dead-letter queues and bounded redelivery instead of infinite requeue loops
 - independent dependencies: bulkhead limits so one slow dependency cannot consume all request capacity
 
+## Data Structures & Query Efficiency
+The service keeps hot paths explicit so scaling is driven by data shape, not only infrastructure:
+
+- CMS event batches load affected entities once and process them through an in-memory dictionary by entity ID.
+- Duplicate or blank IDs are removed before batch lookups, avoiding unnecessary database parameters and round trips.
+- Entity listings use composite indexes that match the query predicates and sort order:
+  - admin listing: `UpdatedAtUtc DESC, Id`
+  - viewer listing: `Published, AdminDisabled, UpdatedAtUtc DESC, Id`
+
+These indexes keep common list pages aligned with B-tree access patterns instead of relying on large table scans and expensive sorts.
+
 ## CI/CD
 GitHub Actions runs restore, build, unit tests, integration tests, and benchmarks on pushes and pull requests to `main`.
 
