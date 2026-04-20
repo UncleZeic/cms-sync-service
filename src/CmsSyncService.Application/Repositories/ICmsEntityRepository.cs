@@ -14,4 +14,5 @@ public interface ICmsEntityRepository
     Task AddAsync(CmsEntity entity, CancellationToken cancellationToken = default);
     void Remove(CmsEntity entity);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default);
 }
