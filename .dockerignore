@@ -1,0 +1,16 @@
+.git
+.github
+.vs
+bin
+obj
+**/bin
+**/obj
+BenchmarkDotNet.Artifacts
+benchmark-results.txt
+*.user
+*.suo
+*.cache
+*.log
+*.trx
+README.md
+CREDENTIALS.md

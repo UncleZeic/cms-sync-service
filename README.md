@@ -23,6 +23,12 @@ Start PostgreSQL, run migrations, and start the API:
 docker compose up --build
 ```
 
+Compose reads environment overrides from `.env`. Start from the template when you need local overrides:
+
+```sh
+cp .env.example .env
+```
+
 The API is available at:
 
 ```text
@@ -131,6 +137,19 @@ Integration tests use SQLite in-memory through `TestWebApplicationFactory`, so P
 - EF Core with Npgsql
 - SQLite in-memory for integration tests
 - BenchmarkDotNet
+
+## CI/CD
+GitHub Actions runs restore, build, unit tests, integration tests, and benchmarks on pushes and pull requests to `main`.
+
+On pushes to `main`, CI also builds and publishes the API container image to GitHub Container Registry:
+
+```text
+ghcr.io/<owner>/<repo>:<commit-sha>
+ghcr.io/<owner>/<repo>:main
+ghcr.io/<owner>/<repo>:latest
+```
+
+Pull requests build the image without publishing it.
 
 ## Performance Benchmarks
 This project uses [BenchmarkDotNet](https://benchmarkdotnet.org/) to track cache performance over time. Benchmarks are run automatically in CI, and results are uploaded as artifacts.
