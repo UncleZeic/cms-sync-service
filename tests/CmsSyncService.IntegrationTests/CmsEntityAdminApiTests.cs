@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -15,6 +16,7 @@ namespace CmsSyncService.Api.Tests;
 public class CmsEntityAdminApiTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
+    private readonly List<CmsSyncService.Domain.CmsEntity> _seedEntities;
 
     public CmsEntityAdminApiTests(TestWebApplicationFactory factory)
     {
@@ -23,7 +25,7 @@ public class CmsEntityAdminApiTests : IClassFixture<TestWebApplicationFactory>
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncService.Infrastructure.Persistence.CmsSyncDbContext>();
         CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
-        CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
+        _seedEntities = CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
     }
 
     private async Task<(HttpClient client, string entityId)> CreateClientAndGetEntityIdAsync(string username, string password)
@@ -33,7 +35,7 @@ public class CmsEntityAdminApiTests : IClassFixture<TestWebApplicationFactory>
         var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         // Use seeded entity for test
-        var entityId = CmsEntityDbSeeder.SeedEntities[0].Id;
+        var entityId = _seedEntities[0].Id;
         return (client, entityId);
     }
 

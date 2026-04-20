@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Xunit;
@@ -13,6 +14,7 @@ namespace CmsSyncService.Api.Tests;
 public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
+    private readonly List<CmsSyncService.Domain.CmsEntity> _seedEntities;
 
     public CmsEntityControllerTests(TestWebApplicationFactory factory)
     {
@@ -21,7 +23,7 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();
         CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
-        CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
+        _seedEntities = CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
     }
 
     private static void AddBasicAuthHeader(HttpClient client)
@@ -116,7 +118,7 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
     {
         var client = _factory.CreateClient();
         AddBasicAuthHeader(client);
-        var entity = CmsEntityDbSeeder.SeedEntities[0];
+        var entity = _seedEntities[0];
         var response = await client.GetAsync($"/cms/entities/{entity.Id}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -126,7 +128,7 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
     {
         var client = _factory.CreateClient();
         AddBasicAuthHeader(client);
-        var unpublishedEntity = CmsEntityDbSeeder.SeedEntities[2];
+        var unpublishedEntity = _seedEntities[2];
 
         var response = await client.GetAsync($"/cms/entities/{unpublishedEntity.Id}");
 
@@ -138,7 +140,7 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
     {
         var adminClient = _factory.CreateClient();
         AddAdminAuthHeader(adminClient);
-        var targetEntity = CmsEntityDbSeeder.SeedEntities[0];
+        var targetEntity = _seedEntities[0];
 
         var patchResponse = await adminClient.PatchAsJsonAsync($"/cms/entities/{targetEntity.Id}", new AdminDisabledDto { AdminDisabled = true });
         Assert.Equal(HttpStatusCode.OK, patchResponse.StatusCode);
@@ -153,7 +155,7 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetAll_AsViewer_AdminDisabledPublishedEntity_IsHiddenFromListing()
     {
-        var targetEntity = CmsEntityDbSeeder.SeedEntities[0];
+        var targetEntity = _seedEntities[0];
 
         var adminClient = _factory.CreateClient();
         AddAdminAuthHeader(adminClient);
