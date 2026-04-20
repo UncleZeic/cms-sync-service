@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using CmsSyncService.Application.DTOs;
+using CmsSyncService.Domain;
 using Xunit;
 
 namespace CmsSyncService.UnitTests.Application.Dtos;
@@ -199,7 +200,7 @@ public class CmsEventDtoTests
 
         var normalized = dto.ToNormalized();
 
-        Assert.Equal(CmsSyncService.Domain.CmsEventType.Publish, normalized.Type);
+        Assert.Equal(CmsEventType.Publish, normalized.Type);
         Assert.Equal("entity-7", normalized.Id);
         Assert.Equal("{\"foo\":\"bar\"}", normalized.Payload);
     }

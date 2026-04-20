@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using CmsSyncService.Application.Repositories;
@@ -23,7 +24,7 @@ public class CmsEntityAdminServiceTests
     [Fact]
     public async Task SetAdminDisabledAsync_AlreadySet_ReturnsTrueWithoutSave()
     {
-        var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         entity.SetAdminDisabled(true);
         var repoMock = new Mock<ICmsEntityRepository>();
         repoMock.Setup(r => r.GetByIdAsync("id2", It.IsAny<CancellationToken>())).ReturnsAsync(entity);
@@ -36,7 +37,7 @@ public class CmsEntityAdminServiceTests
     [Fact]
     public async Task SetAdminDisabledAsync_UpdatesFlagAndSaves()
     {
-        var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id3", Payload = "payload", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id3", Payload = "payload", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         entity.SetAdminDisabled(false);
         var repoMock = new Mock<ICmsEntityRepository>();
         repoMock.Setup(r => r.GetByIdAsync("id3", It.IsAny<CancellationToken>())).ReturnsAsync(entity);

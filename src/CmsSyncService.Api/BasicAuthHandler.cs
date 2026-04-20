@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 
@@ -22,7 +24,7 @@ public class BasicAuthHandler : AuthenticationHandler<AuthenticationSchemeOption
         ILoggerFactory logger,
         UrlEncoder encoder,
         TimeProvider timeProvider,
-        Microsoft.Extensions.Configuration.IConfiguration configuration)
+        IConfiguration configuration)
         : base(options, logger, encoder)
     {
         _users = new List<UserRecord>();
@@ -77,7 +79,7 @@ public class BasicAuthHandler : AuthenticationHandler<AuthenticationSchemeOption
             var password = credentials[1];
             
             // Hash the provided password for comparison
-            var providedHash = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(password)));
+            var providedHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(password)));
             
             var user = _users.FirstOrDefault(u => u.Username == username && u.PasswordHash == providedHash);
             if (user == null)

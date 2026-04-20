@@ -16,32 +16,32 @@ namespace CmsSyncService.Api.Tests.TestFixtures
 
         public static async Task<List<CmsEntity>> SeedAsync(CmsSyncDbContext dbContext)
         {
-            var event1 = new CmsSyncService.Domain.CmsEvent
+            var event1 = new CmsEvent
             {
                 Id = Guid.NewGuid().ToString(),
                 Payload = "{\"foo\":\"bar1\"}",
                 Version = 1,
                 Timestamp = DateTimeOffset.UtcNow
             };
-            var entity1 = CmsSyncService.Domain.CmsEntity.CreatePublished(event1);
+            var entity1 = CmsEntity.CreatePublished(event1);
 
-            var event2 = new CmsSyncService.Domain.CmsEvent 
+            var event2 = new CmsEvent 
             {
                 Id = Guid.NewGuid().ToString(),
                 Payload = "{\"foo\":\"bar2\"}",
                 Version = 2,
                 Timestamp = DateTimeOffset.UtcNow
             };
-            var entity2 = CmsSyncService.Domain.CmsEntity.CreatePublished(event2);
+            var entity2 = CmsEntity.CreatePublished(event2);
 
-            var event3 = new CmsSyncService.Domain.CmsEvent
+            var event3 = new CmsEvent
             {
                 Id = Guid.NewGuid().ToString(),
                 Payload = "{\"foo\":\"bar3\"}",
                 Version = 3,
                 Timestamp = DateTimeOffset.UtcNow
             };
-            var entity3 = CmsSyncService.Domain.CmsEntity.CreateUnpublished(event3);
+            var entity3 = CmsEntity.CreateUnpublished(event3);
 
             var seedEntities = new List<CmsEntity> { entity1, entity2, entity3 };
 

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using CmsSyncService.Domain;
 using CmsSyncService.Infrastructure.Persistence;
@@ -15,9 +16,9 @@ public class CmsEntityRepositoryAdvancedTests
         const string databaseName = "GetByIdsAsync_ReturnsMatchingEntities";
 
         var repo = CreateRepository(databaseName);
-        var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
-        var entity2 = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
-        var entity3 = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity2 = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity3 = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
         await repo.AddAsync(entity1);
         await repo.AddAsync(entity2);
         await repo.AddAsync(entity3);
@@ -35,10 +36,10 @@ public class CmsEntityRepositoryAdvancedTests
         const string databaseName = "GetByIdVisibleToUserAsync_Admin_GetsAnyEntity";
 
         var repo = CreateRepository(databaseName);
-        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
-        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         adminDisabled.SetAdminDisabled(true);
-        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
         await repo.AddAsync(visible);
         await repo.AddAsync(adminDisabled);
         await repo.AddAsync(unpublished);
@@ -55,10 +56,10 @@ public class CmsEntityRepositoryAdvancedTests
         const string databaseName = "GetByIdVisibleToUserAsync_NonAdmin_GetsOnlyVisible";
 
         var repo = CreateRepository(databaseName);
-        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
-        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         adminDisabled.SetAdminDisabled(true);
-        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
         await repo.AddAsync(visible);
         await repo.AddAsync(adminDisabled);
         await repo.AddAsync(unpublished);
@@ -91,7 +92,7 @@ public class CmsEntityRepositoryAdvancedTests
         const string databaseName = "UpdateEntity_WorksCorrectly";
 
         var repo = CreateRepository(databaseName);
-        var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         await repo.AddAsync(entity);
         await repo.SaveChangesAsync();
 
@@ -109,10 +110,10 @@ public class CmsEntityRepositoryAdvancedTests
         const string databaseName = "GetVisibleToNormalUserAsync_ReturnsOnlyVisibleEntities";
 
         var repo = CreateRepository(databaseName);
-        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
-        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var visible = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var adminDisabled = CmsEntity.CreatePublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         adminDisabled.SetAdminDisabled(true);
-        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        var unpublished = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id3", Payload = "payload3", Version = 3, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
         await repo.AddAsync(visible);
         await repo.AddAsync(adminDisabled);
         await repo.AddAsync(unpublished);
@@ -129,8 +130,8 @@ public class CmsEntityRepositoryAdvancedTests
         const string databaseName = "AddDuplicateId_ThrowsOrOverwrites";
 
         var repo = CreateRepository(databaseName);
-        var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
-        var entity2 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity2 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload2", Version = 2, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
         await repo.AddAsync(entity1);
         await repo.SaveChangesAsync();
         await Assert.ThrowsAsync<InvalidOperationException>(async () => {
@@ -152,8 +153,8 @@ public class CmsEntityRepositoryAdvancedTests
             .Options;
 
         var repo = new CmsEntityRepository(new CmsSyncDbContext(writeOptions), new CmsSyncReadDbContext(readOptions));
-        var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
-        var entity2 = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = System.DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
+        var entity1 = CmsEntity.CreatePublished(new CmsEvent { Id = "id1", Payload = "payload1", Version = 1, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Publish });
+        var entity2 = CmsEntity.CreateUnpublished(new CmsEvent { Id = "id2", Payload = "payload2", Version = 2, Timestamp = DateTimeOffset.UtcNow, Type = CmsEventType.Unpublish });
         await repo.AddAsync(entity1);
         await repo.AddAsync(entity2);
         await repo.SaveChangesAsync();

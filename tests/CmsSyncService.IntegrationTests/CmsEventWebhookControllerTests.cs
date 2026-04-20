@@ -375,8 +375,8 @@ public class CmsEventWebhookControllerTests : IClassFixture<TestWebApplicationFa
         var client = _factory.CreateClient();
         // Use wrong password for the CMS user
         var credentials = "cms-event-user:wrongpassword";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         var events = new[]
         {
             new {

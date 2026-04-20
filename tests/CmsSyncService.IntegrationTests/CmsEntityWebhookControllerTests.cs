@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Xunit;
 using System.Net.Http.Json;
 using CmsSyncService.Application.DTOs;
 using CmsSyncService.Api.Tests.TestFixtures;
+using CmsSyncService.Domain;
 using CmsSyncService.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 
 namespace CmsSyncService.Api.Tests;
 
@@ -15,7 +18,7 @@ namespace CmsSyncService.Api.Tests;
 public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
-    private readonly List<CmsSyncService.Domain.CmsEntity> _seedEntities;
+    private readonly List<CmsEntity> _seedEntities;
 
     private sealed class EntityListResponse
     {
@@ -41,15 +44,15 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
     private static void AddBasicAuthHeader(HttpClient client)
     {
         var credentials = "viewer:DD888324-9217-41D1-85D9-20D844090106";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
     }
 
     private static void AddAdminAuthHeader(HttpClient client)
     {
         var credentials = "admin:7FDD33AD-3FD3-41B8-AC05-5A9122ABC086";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
     }
 
     [Fact]
@@ -94,8 +97,8 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
         var client = _factory.CreateClient();
         // Admin credentials (from README.md)
         var credentials = "admin:7FDD33AD-3FD3-41B8-AC05-5A9122ABC086";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         var response = await client.GetAsync("/cms/entities");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var page = await response.Content.ReadFromJsonAsync<EntityListResponse>();
@@ -131,8 +134,8 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
         var client = _factory.CreateClient();
         // Viewer credentials
         var credentials = "viewer:DD888324-9217-41D1-85D9-20D844090106";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         var response = await client.GetAsync("/cms/entities");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var page = await response.Content.ReadFromJsonAsync<EntityListResponse>();
@@ -208,8 +211,8 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
         var client = _factory.CreateClient();
         // Use cms-event-user credentials (should not have EntityViewer/Admin role)
         var credentials = "cms-event-user:9A01D9BF-A5B5-45D4-BE41-618B0F11D6CF";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         var response = await client.GetAsync("/cms/entities");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -220,8 +223,8 @@ public class CmsEntityControllerTests : IClassFixture<TestWebApplicationFactory>
         var client = _factory.CreateClient();
         // Use wrong password for viewer
         var credentials = "viewer:wrongpassword";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
-        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", base64);
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         var response = await client.GetAsync("/cms/entities");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }

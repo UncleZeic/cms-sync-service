@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.DTOs;
 using CmsSyncService.Domain;
@@ -41,9 +42,9 @@ public class CmsEventApplicationService : ICmsEventApplicationService
         foreach (var dto in batch)
         {
             // Validate DTO
-            var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
-            var context = new System.ComponentModel.DataAnnotations.ValidationContext(dto);
-            if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(dto, context, validationResults, true))
+            var validationResults = new List<ValidationResult>();
+            var context = new ValidationContext(dto);
+            if (!Validator.TryValidateObject(dto, context, validationResults, true))
             {
                 validationFailed++;
                 foreach (var result in validationResults)

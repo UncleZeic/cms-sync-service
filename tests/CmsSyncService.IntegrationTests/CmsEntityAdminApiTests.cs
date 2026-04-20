@@ -8,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using CmsSyncService.Application.DTOs;
 using CmsSyncService.Api.Tests.TestFixtures;
+using CmsSyncService.Domain;
+using CmsSyncService.Infrastructure.Persistence;
+using System.Text;
 
 
 namespace CmsSyncService.Api.Tests;
@@ -16,14 +19,14 @@ namespace CmsSyncService.Api.Tests;
 public class CmsEntityAdminApiTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
-    private readonly List<CmsSyncService.Domain.CmsEntity> _seedEntities;
+    private readonly List<CmsEntity> _seedEntities;
 
     public CmsEntityAdminApiTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
 
         using var scope = _factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncService.Infrastructure.Persistence.CmsSyncDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<CmsSyncDbContext>();
         CmsEntityDbSeeder.ClearAsync(dbContext).GetAwaiter().GetResult();
         _seedEntities = CmsEntityDbSeeder.SeedAsync(dbContext).GetAwaiter().GetResult();
     }
@@ -32,7 +35,7 @@ public class CmsEntityAdminApiTests : IClassFixture<TestWebApplicationFactory>
     {
         var client = _factory.CreateClient();
         var credentials = $"{username}:{password}";
-        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(credentials));
+        var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64);
         // Use seeded entity for test
         var entityId = _seedEntities[0].Id;

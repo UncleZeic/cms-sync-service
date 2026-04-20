@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using CmsSyncService.Application;
 using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.Services;
 using CmsSyncService.Infrastructure.Persistence;
@@ -58,7 +59,7 @@ builder.Services.AddSwaggerGen(options =>
 		}
 	});
 });
-builder.Services.Configure<CmsSyncService.Application.CacheDurations>(builder.Configuration.GetSection("CacheDurations"));
+builder.Services.Configure<CacheDurations>(builder.Configuration.GetSection("CacheDurations"));
 builder.Services.AddSingleton<IEntityCacheService, EntityCacheService>();
 
 // Dependency Injection registration
