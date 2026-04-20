@@ -33,23 +33,37 @@ namespace CmsSyncService.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ICmsEntityDto>>> GetAll([FromQuery] int skip = 0, [FromQuery] int take = 100, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<PagedResponseDto<ICmsEntityDto>>> GetAll([FromQuery] int skip = 0, [FromQuery] int take = 100, CancellationToken cancellationToken = default)
         {
             try
             {
                 var isAdmin = User.IsInRole("Admin");
 
-                async Task<List<ICmsEntityDto>> FetchDtos()
+                async Task<PagedResponseDto<ICmsEntityDto>> FetchPage()
                 {
                     if (isAdmin)
                     {
                         var entities = await _repository.GetAllAsync(skip, take, cancellationToken);
-                        return entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList();
+                        var total = await _repository.CountAllAsync(cancellationToken);
+                        return new PagedResponseDto<ICmsEntityDto>
+                        {
+                            Items = entities.Select(e => e.ToAdminDto()).Cast<ICmsEntityDto>().ToList(),
+                            Total = total,
+                            Skip = skip,
+                            Take = take
+                        };
                     }
                     else
                     {
                         var entities = await _repository.GetVisibleToNormalUserAsync(skip, take, cancellationToken);
-                        return entities.Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList();
+                        var total = await _repository.CountVisibleToNormalUserAsync(cancellationToken);
+                        return new PagedResponseDto<ICmsEntityDto>
+                        {
+                            Items = entities.Select(e => e.ToDto()).Cast<ICmsEntityDto>().ToList(),
+                            Total = total,
+                            Skip = skip,
+                            Take = take
+                        };
                     }
                 }
 
@@ -57,17 +71,17 @@ namespace CmsSyncService.Api.Controllers
                 if (skip == EntityCacheKeys.DefaultSkip && take == EntityCacheKeys.DefaultTake)
                 {
                     string cacheKey = EntityCacheKeys.GetDefaultPagedEntityListKey(isAdmin);
-                    var cached = _cacheService.Get<List<ICmsEntityDto>>(cacheKey);
+                    var cached = _cacheService.Get<PagedResponseDto<ICmsEntityDto>>(cacheKey);
                     if (cached != null)
                         return Ok(cached);
-                    var dtos = await FetchDtos();
-                    _cacheService.Set(cacheKey, dtos);
-                    return Ok(dtos);
+                    var page = await FetchPage();
+                    _cacheService.Set(cacheKey, page);
+                    return Ok(page);
                 }
                 else
                 {
-                    var dtos = await FetchDtos();
-                    return Ok(dtos);
+                    var page = await FetchPage();
+                    return Ok(page);
                 }
             }
             catch (Exception ex)

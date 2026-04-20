@@ -8,7 +8,9 @@ public interface ICmsEntityRepository
     Task<CmsEntity?> GetByIdVisibleToUserAsync(string id, bool isAdmin, CancellationToken cancellationToken = default);
     Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
     Task<List<CmsEntity>> GetAllAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default);
+    Task<int> CountAllAsync(CancellationToken cancellationToken = default);
     Task<List<CmsEntity>> GetVisibleToNormalUserAsync(int skip = 0, int take = 100, CancellationToken cancellationToken = default);
+    Task<int> CountVisibleToNormalUserAsync(CancellationToken cancellationToken = default);
     Task AddAsync(CmsEntity entity, CancellationToken cancellationToken = default);
     void Remove(CmsEntity entity);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

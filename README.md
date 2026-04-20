@@ -70,7 +70,7 @@ Roles:
 ## API Endpoints
 - `GET /health`: public health check
 - `POST /cms/events`: ingest a batch of CMS events, requires `cms-event-user`
-- `GET /cms/entities`: list entities, requires `viewer` or `admin`
+- `GET /cms/entities`: list entities with pagination metadata, requires `viewer` or `admin`
 - `GET /cms/entities/{id}`: get one visible entity, requires `viewer` or `admin`
 - `PATCH /cms/entities/{id}`: set `adminDisabled`, requires `admin`
 
@@ -86,6 +86,24 @@ CMS event example:
     "timestamp": "2024-01-01T00:00:00Z"
   }
 ]
+```
+
+Entity list response example:
+
+```json
+{
+  "items": [
+    {
+      "id": "entity-1",
+      "payload": "{\"title\":\"Example\"}",
+      "version": 1,
+      "updatedAtUtc": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "skip": 0,
+  "take": 100
+}
 ```
 
 ## Data Rules

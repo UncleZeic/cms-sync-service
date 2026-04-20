@@ -42,6 +42,12 @@ public class CmsEntityRepository : ICmsEntityRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<int> CountVisibleToNormalUserAsync(CancellationToken cancellationToken = default)
+    {
+        return await _readDbContext.CmsEntities
+            .CountAsync(e => e.Published && !e.AdminDisabled, cancellationToken);
+    }
+
     public async Task<CmsEntity?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _writeDbContext.CmsEntities.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -55,6 +61,11 @@ public class CmsEntityRepository : ICmsEntityRepository
             .Skip(skip)
             .Take(take)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> CountAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _readDbContext.CmsEntities.CountAsync(cancellationToken);
     }
 
     public async Task AddAsync(CmsEntity entity, CancellationToken cancellationToken = default)
