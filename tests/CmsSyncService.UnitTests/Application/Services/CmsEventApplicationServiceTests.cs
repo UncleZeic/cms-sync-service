@@ -21,6 +21,7 @@ public class CmsEventApplicationServiceTests
     public async Task ProcessBatchAsync_LogsInformation()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
+        SetupTransaction(repoMock);
 
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
@@ -54,6 +55,7 @@ public class CmsEventApplicationServiceTests
     public async Task ProcessBatchAsync_InvalidDto_LogsValidationWarningAndSkips()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
+        SetupTransaction(repoMock);
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
         var cacheMock = new Mock<IEntityCacheService>();
@@ -73,6 +75,7 @@ public class CmsEventApplicationServiceTests
     public async Task ProcessBatchAsync_DeleteEventForNonExistentEntity_LogsWarningAndSkips()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
+        SetupTransaction(repoMock);
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
         var cacheMock = new Mock<IEntityCacheService>();
@@ -91,6 +94,7 @@ public class CmsEventApplicationServiceTests
     public async Task ProcessBatchAsync_PublishWithLowerVersion_LogsVersionConflictAndSkips()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
+        SetupTransaction(repoMock);
         // Use the domain factory method to create an entity with version 2
         var eventDto = new CmsEventDto { Id = "id", Type = "publish", Version = 1, Timestamp = DateTimeOffset.UtcNow, Payload = JsonDocument.Parse("{\"foo\":\"bar\"}").RootElement };
         var existingEntity = CmsEntity.CreatePublished(new CmsEvent { Id = "id", Payload = "{\"foo\":\"bar\"}", Version = 2, Timestamp = eventDto.Timestamp, Type = CmsEventType.Publish });
@@ -112,6 +116,7 @@ public class CmsEventApplicationServiceTests
     public async Task ProcessBatchAsync_UnpublishForNonExistentEntity_AddsNewUnpublishedEntity()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
+        SetupTransaction(repoMock);
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         repoMock.Setup(r => r.AddAsync(It.IsAny<CmsEntity>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask).Verifiable();
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
@@ -128,5 +133,12 @@ public class CmsEventApplicationServiceTests
         };
         await service.ProcessBatchAsync(events, CancellationToken.None);
         repoMock.Verify(r => r.AddAsync(It.IsAny<CmsEntity>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static void SetupTransaction(Mock<ICmsEntityRepository> repoMock)
+    {
+        repoMock
+            .Setup(r => r.ExecuteInTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()))
+            .Returns<Func<Task>, CancellationToken>((operation, _) => operation());
     }
 }

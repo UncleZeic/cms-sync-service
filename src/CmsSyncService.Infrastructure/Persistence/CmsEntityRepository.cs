@@ -82,4 +82,11 @@ public class CmsEntityRepository : ICmsEntityRepository
     {
         await _writeDbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _writeDbContext.Database.BeginTransactionAsync(cancellationToken);
+        await operation();
+        await transaction.CommitAsync(cancellationToken);
+    }
 }

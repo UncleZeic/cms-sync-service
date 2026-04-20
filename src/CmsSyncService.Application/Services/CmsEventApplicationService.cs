@@ -29,113 +29,116 @@ public class CmsEventApplicationService : ICmsEventApplicationService
         int processed = 0, skipped = 0, validationFailed = 0, versionConflict = 0;
         _logger.LogInformation("Processing batch of {Count} CMS events", total);
 
-        // Fetch all necessary entities upfront
-        var eventIds = batch
-            .Where(e => !string.IsNullOrWhiteSpace(e.Id))
-            .Select(e => e.Id.Trim())
-            .Distinct()
-            .ToList();
-        var entities = await _cmsEntityRepository.GetByIdsAsync(eventIds, cancellationToken) ?? new List<CmsEntity>();
-        var existingEntities = entities.ToDictionary(e => e.Id);
-
         var affectedIds = new HashSet<string>();
-        foreach (var dto in batch)
+        await _cmsEntityRepository.ExecuteInTransactionAsync(async () =>
         {
-            // Validate DTO
-            var validationResults = new List<ValidationResult>();
-            var context = new ValidationContext(dto);
-            if (!Validator.TryValidateObject(dto, context, validationResults, true))
+            // Fetch all necessary entities inside the transaction so updates are committed atomically with SaveChanges.
+            var eventIds = batch
+                .Where(e => !string.IsNullOrWhiteSpace(e.Id))
+                .Select(e => e.Id.Trim())
+                .Distinct()
+                .ToList();
+            var entities = await _cmsEntityRepository.GetByIdsAsync(eventIds, cancellationToken) ?? new List<CmsEntity>();
+            var existingEntities = entities.ToDictionary(e => e.Id);
+
+            foreach (var dto in batch)
             {
-                validationFailed++;
-                foreach (var result in validationResults)
+                // Validate DTO
+                var validationResults = new List<ValidationResult>();
+                var context = new ValidationContext(dto);
+                if (!Validator.TryValidateObject(dto, context, validationResults, true))
                 {
-                    _logger.LogWarning("Event validation failed for Id: {Id}, Reason: {Reason}", dto.Id, result.ErrorMessage);
+                    validationFailed++;
+                    foreach (var result in validationResults)
+                    {
+                        _logger.LogWarning("Event validation failed for Id: {Id}, Reason: {Reason}", dto.Id, result.ErrorMessage);
+                    }
+                    continue;
                 }
-                continue;
+
+                var cmsEvent = dto.ToNormalized();
+                _logger.LogDebug("Processing event: {EventType} for Id: {Id}", cmsEvent.Type, cmsEvent.Id);
+
+                existingEntities.TryGetValue(cmsEvent.Id, out var existingEntity);
+
+                switch (cmsEvent.Type)
+                {
+                    case CmsEventType.Delete:
+                        if (existingEntity is not null)
+                        {
+                            _logger.LogInformation("Deleting entity with Id: {Id}", cmsEvent.Id);
+                            _cmsEntityRepository.Remove(existingEntity);
+                            processed++;
+                            affectedIds.Add(cmsEvent.Id);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Delete event for non-existent entity Id: {Id}", cmsEvent.Id);
+                            skipped++;
+                        }
+                        break;
+
+                    case CmsEventType.Publish:
+                        if (existingEntity is null)
+                        {
+                            _logger.LogInformation("Publishing new entity with Id: {Id}", cmsEvent.Id);
+                            var newEntity = CmsEntity.CreatePublished(cmsEvent);
+                            await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
+                            processed++;
+                            affectedIds.Add(cmsEvent.Id);
+                        }
+                        else if (cmsEvent.Version < existingEntity.Version)
+                        {
+                            _logger.LogWarning("Publish event version conflict for Id: {Id}. Incoming version: {IncomingVersion}, Current version: {CurrentVersion}", cmsEvent.Id, cmsEvent.Version, existingEntity.Version);
+                            versionConflict++;
+                            skipped++;
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Updating published entity with Id: {Id}", cmsEvent.Id);
+                            existingEntity.ApplyPublish(cmsEvent);
+                            processed++;
+                            affectedIds.Add(cmsEvent.Id);
+                        }
+                        break;
+
+                    case CmsEventType.Unpublish:
+                        if (existingEntity is null)
+                        {
+                            _logger.LogInformation("Unpublishing new entity with Id: {Id}", cmsEvent.Id);
+                            var newEntity = CmsEntity.CreateUnpublished(cmsEvent);
+                            await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
+                            processed++;
+                            affectedIds.Add(cmsEvent.Id);
+                        }
+                        else if (cmsEvent.Version < existingEntity.Version)
+                        {
+                            _logger.LogWarning("Unpublish event version conflict for Id: {Id}. Incoming version: {IncomingVersion}, Current version: {CurrentVersion}", cmsEvent.Id, cmsEvent.Version, existingEntity.Version);
+                            versionConflict++;
+                            skipped++;
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Updating unpublished entity with Id: {Id}", cmsEvent.Id);
+                            existingEntity.ApplyUnpublish(cmsEvent);
+                            processed++;
+                            affectedIds.Add(cmsEvent.Id);
+                        }
+                        break;
+
+                    default:
+                        _logger.LogError("Unsupported CMS event type '{EventType}' for Id: {Id}", cmsEvent.Type, cmsEvent.Id);
+                        skipped++;
+                        break;
+                }
             }
+            _logger.LogInformation("Batch summary: total={Total}, processed={Processed}, skipped={Skipped}, validationFailed={ValidationFailed}, versionConflicts={VersionConflicts}",
+                total, processed, skipped, validationFailed, versionConflict);
+            _logger.LogInformation("Saving changes after processing batch");
+            await _cmsEntityRepository.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
 
-            var cmsEvent = dto.ToNormalized();
-            _logger.LogDebug("Processing event: {EventType} for Id: {Id}", cmsEvent.Type, cmsEvent.Id);
-
-            existingEntities.TryGetValue(cmsEvent.Id, out var existingEntity);
-
-            switch (cmsEvent.Type)
-            {
-                case CmsEventType.Delete:
-                    if (existingEntity is not null)
-                    {
-                        _logger.LogInformation("Deleting entity with Id: {Id}", cmsEvent.Id);
-                        _cmsEntityRepository.Remove(existingEntity);
-                        processed++;
-                        affectedIds.Add(cmsEvent.Id);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Delete event for non-existent entity Id: {Id}", cmsEvent.Id);
-                        skipped++;
-                    }
-                    break;
-
-                case CmsEventType.Publish:
-                    if (existingEntity is null)
-                    {
-                        _logger.LogInformation("Publishing new entity with Id: {Id}", cmsEvent.Id);
-                        var newEntity = CmsEntity.CreatePublished(cmsEvent);
-                        await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
-                        processed++;
-                        affectedIds.Add(cmsEvent.Id);
-                    }
-                    else if (cmsEvent.Version < existingEntity.Version)
-                    {
-                        _logger.LogWarning("Publish event version conflict for Id: {Id}. Incoming version: {IncomingVersion}, Current version: {CurrentVersion}", cmsEvent.Id, cmsEvent.Version, existingEntity.Version);
-                        versionConflict++;
-                        skipped++;
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Updating published entity with Id: {Id}", cmsEvent.Id);
-                        existingEntity.ApplyPublish(cmsEvent);
-                        processed++;
-                        affectedIds.Add(cmsEvent.Id);
-                    }
-                    break;
-
-                case CmsEventType.Unpublish:
-                    if (existingEntity is null)
-                    {
-                        _logger.LogInformation("Unpublishing new entity with Id: {Id}", cmsEvent.Id);
-                        var newEntity = CmsEntity.CreateUnpublished(cmsEvent);
-                        await _cmsEntityRepository.AddAsync(newEntity, cancellationToken);
-                        processed++;
-                        affectedIds.Add(cmsEvent.Id);
-                    }
-                    else if (cmsEvent.Version < existingEntity.Version)
-                    {
-                        _logger.LogWarning("Unpublish event version conflict for Id: {Id}. Incoming version: {IncomingVersion}, Current version: {CurrentVersion}", cmsEvent.Id, cmsEvent.Version, existingEntity.Version);
-                        versionConflict++;
-                        skipped++;
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Updating unpublished entity with Id: {Id}", cmsEvent.Id);
-                        existingEntity.ApplyUnpublish(cmsEvent);
-                        processed++;
-                        affectedIds.Add(cmsEvent.Id);
-                    }
-                    break;
-
-                default:
-                    _logger.LogError("Unsupported CMS event type '{EventType}' for Id: {Id}", cmsEvent.Type, cmsEvent.Id);
-                    skipped++;
-                    break;
-            }
-        }
-        _logger.LogInformation("Batch summary: total={Total}, processed={Processed}, skipped={Skipped}, validationFailed={ValidationFailed}, versionConflicts={VersionConflicts}",
-            total, processed, skipped, validationFailed, versionConflict);
-        _logger.LogInformation("Saving changes after processing batch");
-        await _cmsEntityRepository.SaveChangesAsync(cancellationToken);
-
-        // Invalidate cache for affected entities and entity lists
+        // Invalidate cache after the transaction commits.
         _cache.Remove(EntityCacheKeys.GetDefaultPagedEntityListKey(true));
         _cache.Remove(EntityCacheKeys.GetDefaultPagedEntityListKey(false));
         foreach (var id in affectedIds)
