@@ -2,6 +2,7 @@
 using CmsSyncService.Application;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -26,15 +27,15 @@ public class EntityCacheService : IEntityCacheService
         return _cache.TryGetValue(key, out var value) ? value as T : null;
     }
 
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
+    private static readonly ConcurrentDictionary<string, CacheKeyLock> _locks = new();
 
     public T? GetOrCreate<T>(string key, Func<T> factory, bool isList = false) where T : class
     {
         if (_cache.TryGetValue(key, out var value) && value is T cached)
             return cached;
 
-        var keyLock = _locks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-        keyLock.Wait();
+        var keyLock = AcquireLock(key);
+        keyLock.Semaphore.Wait();
         try
         {
             if (_cache.TryGetValue(key, out value) && value is T cached2)
@@ -46,7 +47,8 @@ public class EntityCacheService : IEntityCacheService
         }
         finally
         {
-            keyLock.Release();
+            keyLock.Semaphore.Release();
+            ReleaseLock(key, keyLock);
         }
     }
 
@@ -75,6 +77,56 @@ public class EntityCacheService : IEntityCacheService
     public void Remove(string key)
     {
         _cache.Remove(key);
+    }
+
+    private static CacheKeyLock AcquireLock(string key)
+    {
+        while (true)
+        {
+            var keyLock = _locks.GetOrAdd(key, _ => new CacheKeyLock());
+
+            lock (keyLock.SyncRoot)
+            {
+                if (!_locks.TryGetValue(key, out var currentLock) ||
+                    !ReferenceEquals(currentLock, keyLock) ||
+                    keyLock.IsRetired)
+                {
+                    continue;
+                }
+
+                keyLock.ReferenceCount++;
+                return keyLock;
+            }
+        }
+    }
+
+    private static void ReleaseLock(string key, CacheKeyLock keyLock)
+    {
+        var shouldDispose = false;
+
+        lock (keyLock.SyncRoot)
+        {
+            keyLock.ReferenceCount--;
+            if (keyLock.ReferenceCount == 0 &&
+                _locks.TryRemove(new KeyValuePair<string, CacheKeyLock>(key, keyLock)))
+            {
+                keyLock.IsRetired = true;
+                shouldDispose = true;
+            }
+        }
+
+        if (shouldDispose)
+        {
+            keyLock.Semaphore.Dispose();
+        }
+    }
+
+    private sealed class CacheKeyLock
+    {
+        public SemaphoreSlim Semaphore { get; } = new(1, 1);
+        public object SyncRoot { get; } = new();
+        public int ReferenceCount { get; set; }
+        public bool IsRetired { get; set; }
     }
 }
 
