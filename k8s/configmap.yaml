@@ -8,5 +8,10 @@ data:
   ASPNETCORE_URLS: http://+:8080
   CacheDurations__Entity: "5"
   CacheDurations__EntityList: "2"
+  RabbitMQ__Enabled: "true"
+  RabbitMQ__HostName: cms-sync-rabbitmq
+  RabbitMQ__Port: "5672"
+  RabbitMQ__VirtualHost: /
+  RabbitMQ__QueueName: cms-events
   Logging__LogLevel__Default: Information
   Logging__LogLevel__Microsoft.AspNetCore: Warning

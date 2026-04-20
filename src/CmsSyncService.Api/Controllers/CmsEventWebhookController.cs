@@ -1,6 +1,6 @@
 
 using CmsSyncService.Application.DTOs;
-using CmsSyncService.Application.Services;
+using CmsSyncService.Api.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,12 +11,12 @@ namespace CmsSyncService.Api.Controllers
     [Authorize(Roles = "EventUpdater")]
     public class CmsEventWebhookController : ControllerBase
     {
-        private readonly ICmsEventApplicationService _service;
+        private readonly ICmsEventPublisher _publisher;
         private readonly ILogger<CmsEventWebhookController> _logger;
 
-        public CmsEventWebhookController(ICmsEventApplicationService service, ILogger<CmsEventWebhookController> logger)
+        public CmsEventWebhookController(ICmsEventPublisher publisher, ILogger<CmsEventWebhookController> logger)
         {
-            _service = service;
+            _publisher = publisher;
             _logger = logger;
         }
 
@@ -26,11 +26,15 @@ namespace CmsSyncService.Api.Controllers
         {
             try
             {
-                if (events == null || !events.Any())
+                if (events == null)
                     return BadRequest("No events provided.");
 
-                await _service.ProcessBatchAsync(events, cancellationToken);
-                return Ok();
+                var batch = events as IReadOnlyCollection<CmsEventDto> ?? events.ToList();
+                if (batch.Count == 0)
+                    return BadRequest("No events provided.");
+
+                await _publisher.PublishBatchAsync(batch, cancellationToken);
+                return _publisher.PublishesAsynchronously ? Accepted() : Ok();
             }
             catch(Exception ex)
             {

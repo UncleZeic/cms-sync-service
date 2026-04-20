@@ -6,6 +6,7 @@ using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.Services;
 using CmsSyncService.Infrastructure.Persistence;
 using CmsSyncService.Application.Caching;
+using CmsSyncService.Api.Messaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
@@ -73,6 +74,17 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.Configure<CacheDurations>(builder.Configuration.GetSection("CacheDurations"));
 builder.Services.AddSingleton<IEntityCacheService, EntityCacheService>();
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMQ"));
+var rabbitMqOptions = builder.Configuration.GetSection("RabbitMQ").Get<RabbitMqOptions>() ?? new RabbitMqOptions();
+if (rabbitMqOptions.Enabled)
+{
+	builder.Services.AddSingleton<ICmsEventPublisher, RabbitMqCmsEventPublisher>();
+	builder.Services.AddHostedService<RabbitMqCmsEventWorker>();
+}
+else
+{
+	builder.Services.AddScoped<ICmsEventPublisher, DirectCmsEventPublisher>();
+}
 
 // Dependency Injection registration
 builder.Services.AddDbContext<CmsSyncDbContext>(options =>

@@ -6,6 +6,7 @@ These manifests show a production-scaling deployment shape for the CMS Sync Serv
 - ClusterIP service for internal API traffic
 - HorizontalPodAutoscaler for API scaling
 - Redis deployment and service for distributed cache
+- RabbitMQ deployment and service for asynchronous CMS event processing
 - ConfigMap for non-sensitive settings
 - Example Secret for connection strings and auth users
 
@@ -25,6 +26,8 @@ kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/secret.example.yaml
 kubectl apply -f k8s/redis-deployment.yaml
 kubectl apply -f k8s/redis-service.yaml
+kubectl apply -f k8s/rabbitmq-deployment.yaml
+kubectl apply -f k8s/rabbitmq-service.yaml
 kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/api-service.yaml
 kubectl apply -f k8s/api-hpa.yaml

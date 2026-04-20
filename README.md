@@ -1,13 +1,17 @@
 # CMS Sync Service (.NET 10)
 
 ## Description
-A .NET 10 Web API that ingests CMS webhook events, stores the latest known entity state in PostgreSQL, and exposes a protected REST API for consumers. The service supports published, unpublished, deleted, and admin-disabled entities.
+A .NET 10 Web API that ingests CMS webhook events, stores the latest known entity state in PostgreSQL, and exposes a protected REST API for consumers. The service supports published, unpublished, deleted, and admin-disabled entities, with optional RabbitMQ-backed asynchronous event processing for production-style scaling.
 
 ## Architecture
 - **Api**: Controllers, authentication, Swagger, middleware
 - **Application**: Business services, DTO validation, caching
 - **Infrastructure**: EF Core contexts, repositories, migrations
 - **Domain**: Entity business rules for publish, unpublish, delete, and versioning
+
+CMS event ingestion can run in two modes:
+- Direct mode: the API processes events during the request, useful for tests and simple local runs.
+- RabbitMQ mode: the API enqueues events and returns `202 Accepted`; a hosted worker consumes the queue and updates PostgreSQL.
 
 ## Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/)
@@ -17,7 +21,7 @@ A .NET 10 Web API that ingests CMS webhook events, stores the latest known entit
 
 ### Option 1: Docker Compose
 
-Start PostgreSQL, run migrations, and start the API:
+Start PostgreSQL, Redis, RabbitMQ, run migrations, and start the API:
 
 ```sh
 docker compose up --build
@@ -128,6 +132,8 @@ Integration tests use SQLite in-memory through `TestWebApplicationFactory`, so P
 - ASP.NET Core Web API
 - Swagger / Swashbuckle
 - PostgreSQL via Docker
+- Redis distributed cache
+- RabbitMQ asynchronous event queue
 - EF Core with Npgsql
 - SQLite in-memory for integration tests
 - BenchmarkDotNet
