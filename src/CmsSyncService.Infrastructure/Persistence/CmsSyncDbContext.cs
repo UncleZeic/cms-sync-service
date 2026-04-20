@@ -1,5 +1,6 @@
 using CmsSyncService.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CmsSyncService.Infrastructure.Persistence;
 
@@ -36,8 +37,13 @@ public class CmsSyncDbContext : DbContext
                 .IsRequired();
             entity.Property(x => x.AdminDisabled)
                 .IsRequired();
-            entity.Property(x => x.UpdatedAtUtc)
+            var updatedAtProperty = entity.Property(x => x.UpdatedAtUtc)
                 .IsRequired();
+
+            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+            {
+                updatedAtProperty.HasConversion(new DateTimeOffsetToBinaryConverter());
+            }
             // Composite index on Published, AdminDisabled
             entity.HasIndex(x => new { x.Published, x.AdminDisabled });
             // Index for ordering by UpdatedAtUtc and Id
