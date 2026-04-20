@@ -25,4 +25,14 @@ public class BasicApiTests : IClassFixture<TestWebApplicationFactory>
         var payload = await response.Content.ReadAsStringAsync();
         Assert.Contains("Healthy", payload);
     }
+
+    [Fact]
+    public async Task ReadinessEndpoint_ReturnsOk()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/health/ready");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }

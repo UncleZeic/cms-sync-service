@@ -83,6 +83,7 @@ Roles:
 
 ## API Endpoints
 - `GET /health`: public health check
+- `GET /health/ready`: dependency-aware health check endpoint
 - `POST /cms/events`: ingest a batch of CMS events, requires `cms-event-user`
 - `GET /cms/entities`: list entities with pagination metadata, requires `viewer` or `admin`
 - `GET /cms/entities/{id}`: get one visible entity, requires `viewer` or `admin`
@@ -143,8 +144,23 @@ Integration tests use SQLite in-memory through `TestWebApplicationFactory`, so P
 - Swagger / Swashbuckle
 - PostgreSQL via Docker
 - EF Core with Npgsql
+- OpenTelemetry tracing and metrics
 - SQLite in-memory for integration tests
 - BenchmarkDotNet
+
+## Observability
+The API emits structured logs with trace/span identifiers, OpenTelemetry traces, and OpenTelemetry metrics.
+
+Current instrumentation includes:
+- ASP.NET Core request traces and metrics
+- outgoing HTTP client traces and metrics
+- EF Core query traces
+- .NET runtime metrics
+- console exporters for local and CI visibility
+
+The service also exposes:
+- `/health`: lightweight public liveness endpoint
+- `/health/ready`: ASP.NET Core health-check endpoint for readiness probes
 
 ## CI/CD
 GitHub Actions runs restore, build, unit tests, integration tests, and benchmarks on pushes and pull requests to `main`.

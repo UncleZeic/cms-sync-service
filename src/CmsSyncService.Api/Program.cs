@@ -6,13 +6,25 @@ using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.Services;
 using CmsSyncService.Infrastructure.Persistence;
 using CmsSyncService.Application.Caching;
-using Microsoft.Extensions.Configuration;
+using Miosoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 
 var builder = WebApplication.CreateBuilder(args);
+var serviceName = builder.Configuration.GetValue("Observability:ServiceName", "cms-sync-service");
 
+builder.Logging.Configure(options =>
+{
+	options.ActivityTrackingOptions =
+		ActivityTrackingOptions.TraceId |
+		ActivityTrackingOptions.SpanId |
+		ActivityTrackingOptions.ParentId;
+});
+cr
 // Enforce 1MB request body size limit for Kestrel
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -26,6 +38,25 @@ builder.Services.AddAuthentication(options =>
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
 	builder.Services.AddMemoryCache();
+builder.Services.AddHealthChecks();
+builder.Services.AddOpenTelemetry()
+	.ConfigureResource(resource => resource.AddService(serviceName))
+	.WithTracing(tracing =>
+	{
+		tracing
+			.AddAspNetCoreInstrumentation()
+			.AddHttpClientInstrumentation()
+			.AddEntityFrameworkCoreInstrumentation()
+			.AddConsoleExporter();
+	})
+	.WithMetrics(metrics =>
+	{
+		metrics
+			.AddAspNetCoreInstrumentation()
+			.AddHttpClientInstrumentation()
+			.AddRuntimeInstrumentation()
+			.AddConsoleExporter();
+	});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -92,6 +123,7 @@ if (!app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/health", [AllowAnonymous] () => Results.Text("Healthy"));
+app.MapHealthChecks("/health/ready").AllowAnonymous();
 app.MapControllers();
 app.Run();
 
