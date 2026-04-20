@@ -81,7 +81,9 @@ public class BasicAuthHandler : AuthenticationHandler<AuthenticationSchemeOption
             // Hash the provided password for comparison
             var providedHash = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(password)));
             
-            var user = _users.FirstOrDefault(u => u.Username == username && u.PasswordHash == providedHash);
+            var user = _users.FirstOrDefault(u =>
+                u.Username == username &&
+                FixedTimeEquals(u.PasswordHash, providedHash));
             if (user == null)
             {
                 return Task.FromResult(AuthenticateResult.Fail("Invalid Username or Password"));
@@ -101,5 +103,14 @@ public class BasicAuthHandler : AuthenticationHandler<AuthenticationSchemeOption
         {
             return Task.FromResult(AuthenticateResult.Fail("Invalid Authorization Header"));
         }
+    }
+
+    private static bool FixedTimeEquals(string expected, string actual)
+    {
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var actualBytes = Encoding.UTF8.GetBytes(actual);
+
+        return expectedBytes.Length == actualBytes.Length &&
+            CryptographicOperations.FixedTimeEquals(expectedBytes, actualBytes);
     }
 }

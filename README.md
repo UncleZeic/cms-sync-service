@@ -81,6 +81,16 @@ Roles:
 - `viewer`: can read published, non-disabled entities
 - `admin`: can read all entities and set the API-only admin disabled flag
 
+## Security
+Security is handled as a cross-cutting concern:
+
+- Authentication uses Basic Authentication with SHA256 password hashes for this exercise.
+- Authorization is role-based at the controller/action level.
+- Production requests are redirected to HTTPS and HSTS is enabled outside Development.
+- Forwarded headers are enabled so TLS termination at a reverse proxy or load balancer is respected.
+- Responses include defensive headers such as `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and a restrictive Content Security Policy.
+- Secrets should be supplied through environment variables, `.env` for local Docker development, or the target platform's secret store. Do not use the development credentials in production.
+
 ## API Endpoints
 - `GET /health`: public health check
 - `GET /health/ready`: dependency-aware health check endpoint
