@@ -55,7 +55,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cmsuser -d cmssync"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cmsuser} -d ${POSTGRES_DB:-cmssync}"]
       interval: 5s
       timeout: 5s
       retries: 10
