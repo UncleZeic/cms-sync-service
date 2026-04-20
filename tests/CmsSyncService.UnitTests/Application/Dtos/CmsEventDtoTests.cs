@@ -41,7 +41,7 @@ public class CmsEventDtoTests
         var context = new ValidationContext(dto);
         bool isValid = Validator.TryValidateObject(dto, context, results, true);
         Assert.False(isValid);
-        Assert.Contains(results, r => r.ErrorMessage == "The Type field is required.");
+        Assert.Contains(results, r => r.ErrorMessage == "Event type is required.");
     }
 
     [Fact]

@@ -9,11 +9,11 @@ public sealed class CmsEventDto : IValidatableObject
 {
     private static readonly Regex SafeIdPattern = new("^[a-zA-Z0-9\\-_]+$", RegexOptions.Compiled);
 
-    [Required]
+    [Required(ErrorMessage = "Event type is required.")]
     [MaxLength(20)]
     public string Type { get; init; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Event id is required.")]
     [MaxLength(200)]
     public string Id { get; init; } = string.Empty;
 
@@ -21,7 +21,7 @@ public sealed class CmsEventDto : IValidatableObject
 
     public int? Version { get; init; }
 
-    [Required]
+    [Required(ErrorMessage = "Timestamp is required.")]
     public DateTimeOffset Timestamp { get; init; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -145,6 +145,6 @@ public sealed class CmsEventDto : IValidatableObject
         }
 
         using var document = JsonDocument.Parse(payload.Value.GetRawText());
-        return document.RootElement.GetRawText();
+        return JsonSerializer.Serialize(document.RootElement);
     }
 }
