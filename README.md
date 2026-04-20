@@ -118,6 +118,13 @@ Entity list response example:
 - Admin disable is an API-side override and does not affect CMS data.
 - Entity IDs may contain only letters, numbers, hyphens, and underscores.
 
+## Consistency Model
+PostgreSQL is the strong source of truth. Redis is an eventually consistent cache, RabbitMQ is a durable asynchronous delivery buffer, and API pods are stateless.
+
+When RabbitMQ mode is enabled, `POST /cms/events` returns `202 Accepted` after enqueueing the batch. Reads may briefly return the previous entity state until the worker consumes the message, commits the PostgreSQL transaction, and invalidates Redis cache entries.
+
+Event versions protect against stale updates arriving out of order. Event batches are saved inside an explicit database transaction, and cache invalidation happens only after the transaction commits. RabbitMQ messages that repeatedly fail processing are moved to a dead-letter queue instead of being retried forever.
+
 ## Testing
 Unit tests and integration tests can be run with:
 
