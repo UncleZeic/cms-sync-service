@@ -45,10 +45,15 @@ public class CmsEventApplicationServiceTests
     public async Task ProcessBatchAsync_NullEvents_ThrowsArgumentNullException()
     {
         var repoMock = new Mock<ICmsEntityRepository>();
+        SetupTransaction(repoMock);
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
         var cacheMock = new Mock<IEntityCacheService>();
         var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
+
         await Assert.ThrowsAsync<ArgumentNullException>(() => service.ProcessBatchAsync(null!));
+        repoMock.Verify(
+            r => r.ExecuteInTransactionAsync(It.IsAny<Func<Task>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
