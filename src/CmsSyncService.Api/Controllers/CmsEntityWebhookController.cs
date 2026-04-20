@@ -71,11 +71,20 @@ namespace CmsSyncService.Api.Controllers
                 if (skip == EntityCacheKeys.DefaultSkip && take == EntityCacheKeys.DefaultTake)
                 {
                     string cacheKey = EntityCacheKeys.GetDefaultPagedEntityListKey(isAdmin);
-                    var cached = _cacheService.Get<PagedResponseDto<ICmsEntityDto>>(cacheKey);
+                    var cached = isAdmin
+                        ? ToInterfacePage(_cacheService.Get<PagedResponseDto<CmsEntityAdminDto>>(cacheKey))
+                        : ToInterfacePage(_cacheService.Get<PagedResponseDto<CmsEntityDto>>(cacheKey));
                     if (cached != null)
                         return Ok(cached);
                     var page = await FetchPage();
-                    _cacheService.Set(cacheKey, page);
+                    if (isAdmin)
+                    {
+                        _cacheService.Set(cacheKey, ToConcretePage<CmsEntityAdminDto>(page));
+                    }
+                    else
+                    {
+                        _cacheService.Set(cacheKey, ToConcretePage<CmsEntityDto>(page));
+                    }
                     return Ok(page);
                 }
                 else
@@ -96,16 +105,25 @@ namespace CmsSyncService.Api.Controllers
         {
             try
             {
-                string cacheKey = EntityCacheKeys.GetEntityKey(id, User.IsInRole("Admin"));
-                var dto = _cacheService.Get<ICmsEntityDto>(cacheKey);
+                var isAdmin = User.IsInRole("Admin");
+                string cacheKey = EntityCacheKeys.GetEntityKey(id, isAdmin);
+                ICmsEntityDto? dto = isAdmin
+                    ? _cacheService.Get<CmsEntityAdminDto>(cacheKey)
+                    : _cacheService.Get<CmsEntityDto>(cacheKey);
                 if (dto == null)
                 {
-                    var isAdmin = User.IsInRole("Admin");
                     var entity = await _repository.GetByIdVisibleToUserAsync(id, isAdmin, cancellationToken);
                     if (entity == null)
                         return NotFound();
                     dto = isAdmin ? entity.ToAdminDto() : entity.ToDto();
-                    _cacheService.Set(cacheKey, dto);
+                    if (isAdmin)
+                    {
+                        _cacheService.Set(cacheKey, (CmsEntityAdminDto)dto);
+                    }
+                    else
+                    {
+                        _cacheService.Set(cacheKey, (CmsEntityDto)dto);
+                    }
                 }
                 return Ok(dto);
             }
@@ -138,6 +156,32 @@ namespace CmsSyncService.Api.Controllers
                 _logger.LogError(ex, $"Error in PatchById for id {id}");
                 throw;
             }
+        }
+
+        private static PagedResponseDto<ICmsEntityDto>? ToInterfacePage<T>(PagedResponseDto<T>? page)
+            where T : ICmsEntityDto
+        {
+            return page is null
+                ? null
+                : new PagedResponseDto<ICmsEntityDto>
+                {
+                    Items = page.Items.Cast<ICmsEntityDto>().ToList(),
+                    Total = page.Total,
+                    Skip = page.Skip,
+                    Take = page.Take
+                };
+        }
+
+        private static PagedResponseDto<T> ToConcretePage<T>(PagedResponseDto<ICmsEntityDto> page)
+            where T : ICmsEntityDto
+        {
+            return new PagedResponseDto<T>
+            {
+                Items = page.Items.Cast<T>().ToList(),
+                Total = page.Total,
+                Skip = page.Skip,
+                Take = page.Take
+            };
         }
     }
 }

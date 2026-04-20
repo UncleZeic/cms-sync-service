@@ -1,10 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using CmsSyncService.Application.Caching;
 using CmsSyncService.Application.Repositories;
 using CmsSyncService.Application.DTOs;
 using CmsSyncService.Domain;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace CmsSyncService.Application.Services;
 
@@ -12,9 +12,9 @@ public class CmsEventApplicationService : ICmsEventApplicationService
 {
     private readonly ICmsEntityRepository _cmsEntityRepository;
     private readonly ILogger<CmsEventApplicationService> _logger;
-    private readonly IMemoryCache _cache;
+    private readonly IEntityCacheService _cache;
 
-    public CmsEventApplicationService(ICmsEntityRepository cmsEntityRepository, ILogger<CmsEventApplicationService> logger, IMemoryCache cache)
+    public CmsEventApplicationService(ICmsEntityRepository cmsEntityRepository, ILogger<CmsEventApplicationService> logger, IEntityCacheService cache)
     {
         _cmsEntityRepository = cmsEntityRepository;
         _logger = logger;
@@ -136,12 +136,12 @@ public class CmsEventApplicationService : ICmsEventApplicationService
         await _cmsEntityRepository.SaveChangesAsync(cancellationToken);
 
         // Invalidate cache for affected entities and entity lists
-        _cache.Remove(Application.Caching.EntityCacheKeys.GetDefaultPagedEntityListKey(true));
-        _cache.Remove(Application.Caching.EntityCacheKeys.GetDefaultPagedEntityListKey(false));
+        _cache.Remove(EntityCacheKeys.GetDefaultPagedEntityListKey(true));
+        _cache.Remove(EntityCacheKeys.GetDefaultPagedEntityListKey(false));
         foreach (var id in affectedIds)
         {
-            _cache.Remove(Application.Caching.EntityCacheKeys.GetEntityKey(id, true));
-            _cache.Remove(Application.Caching.EntityCacheKeys.GetEntityKey(id, false));
+            _cache.Remove(EntityCacheKeys.GetEntityKey(id, true));
+            _cache.Remove(EntityCacheKeys.GetEntityKey(id, false));
         }
     }
 }

@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CmsSyncService.Application;
 using CmsSyncService.Application.Caching;
+using CmsSyncService.Application.DTOs;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -13,7 +15,7 @@ public class EntityCacheServiceTests
 {
     private EntityCacheService CreateService(int entityMinutes = 5, int listMinutes = 2)
     {
-        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var memoryCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
         var options = Options.Create(new CacheDurations { Entity = entityMinutes, EntityList = listMinutes });
         return new EntityCacheService(memoryCache, options);
     }
@@ -39,6 +41,27 @@ public class EntityCacheServiceTests
         value = service.GetOrCreate("key", () => { called++; return "x"; });
         Assert.Equal("v", value);
         Assert.Equal(1, called);
+    }
+
+    [Fact]
+    public void Set_And_Get_RoundTrips_Complex_Object()
+    {
+        var service = CreateService();
+        var dto = new CmsEntityDto
+        {
+            Id = "entity-1",
+            Payload = "{\"foo\":\"bar\"}",
+            Version = 3,
+            UpdatedAtUtc = DateTimeOffset.UtcNow
+        };
+
+        service.Set("entity", dto);
+
+        var cached = service.Get<CmsEntityDto>("entity");
+        Assert.NotNull(cached);
+        Assert.Equal(dto.Id, cached.Id);
+        Assert.Equal(dto.Payload, cached.Payload);
+        Assert.Equal(dto.Version, cached.Version);
     }
 
     [Fact]

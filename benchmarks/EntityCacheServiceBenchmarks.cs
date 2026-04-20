@@ -1,6 +1,7 @@
 
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using CmsSyncService.Application;
 using CmsSyncService.Application.Caching;
@@ -23,7 +24,7 @@ public class EntityCacheServiceBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var memoryCache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
         var options = Options.Create(new CacheDurations { Entity = 5, EntityList = 2 });
         _cacheService = new EntityCacheService(memoryCache, options);
         _cacheService.Set(_key, _value);

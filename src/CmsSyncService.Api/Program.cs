@@ -25,7 +25,19 @@ builder.Services.AddAuthentication(options =>
 	options.DefaultChallengeScheme = "BasicAuthentication";
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
-	builder.Services.AddMemoryCache();
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+{
+	builder.Services.AddDistributedMemoryCache();
+}
+else
+{
+	builder.Services.AddStackExchangeRedisCache(options =>
+	{
+		options.Configuration = redisConnectionString;
+		options.InstanceName = "cms-sync:";
+	});
+}
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {

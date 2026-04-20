@@ -4,7 +4,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
-using Microsoft.Extensions.Caching.Memory;
+using System.Text.Json;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
 
 namespace CmsSyncService.Application.Caching;
@@ -12,11 +13,13 @@ namespace CmsSyncService.Application.Caching;
 
 public class EntityCacheService : IEntityCacheService
 {
-    private readonly IMemoryCache _cache;
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly IDistributedCache _cache;
     private readonly int _entityCacheMinutes;
     private readonly int _entityListCacheMinutes;
 
-    public EntityCacheService(IMemoryCache cache, IOptions<CacheDurations> options)
+    public EntityCacheService(IDistributedCache cache, IOptions<CacheDurations> options)
     {
         _cache = cache;
         _entityCacheMinutes = options.Value.Entity;
@@ -24,21 +27,24 @@ public class EntityCacheService : IEntityCacheService
     }
     public T? Get<T>(string key) where T : class
     {
-        return _cache.TryGetValue(key, out var value) ? value as T : null;
+        var value = _cache.GetString(key);
+        return value is null ? null : JsonSerializer.Deserialize<T>(value, SerializerOptions);
     }
 
     private static readonly ConcurrentDictionary<string, CacheKeyLock> _locks = new();
 
     public T? GetOrCreate<T>(string key, Func<T> factory, bool isList = false) where T : class
     {
-        if (_cache.TryGetValue(key, out var value) && value is T cached)
+        var cached = Get<T>(key);
+        if (cached is not null)
             return cached;
 
         var keyLock = AcquireLock(key);
         keyLock.Semaphore.Wait();
         try
         {
-            if (_cache.TryGetValue(key, out value) && value is T cached2)
+            var cached2 = Get<T>(key);
+            if (cached2 is not null)
                 return cached2;
 
             var created = factory();
@@ -56,7 +62,7 @@ public class EntityCacheService : IEntityCacheService
 
     private void Set<T>(string key, T value, bool isList) where T : class
     {
-        var options = new MemoryCacheEntryOptions();
+        var options = new DistributedCacheEntryOptions();
         if (isList ||
             key == EntityCacheKeys.GetEntityListKey(true) ||
             key == EntityCacheKeys.GetEntityListKey(false) ||
@@ -71,7 +77,7 @@ public class EntityCacheService : IEntityCacheService
             options.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_entityCacheMinutes);
             options.SlidingExpiration = TimeSpan.FromMinutes(_entityCacheMinutes / 2.0);
         }
-        _cache.Set(key, value, options);
+        _cache.SetString(key, JsonSerializer.Serialize(value, SerializerOptions), options);
     }
 
     public void Remove(string key)

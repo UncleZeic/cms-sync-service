@@ -24,8 +24,11 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=cmssync;Username=cmsuser;Password=cmspassword
+      ConnectionStrings__Redis: redis:6379
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
   db:
     image: postgres:16
@@ -41,6 +44,17 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cmsuser -d cmssync"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    container_name: cmssyncservice-redis
+    restart: no
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10

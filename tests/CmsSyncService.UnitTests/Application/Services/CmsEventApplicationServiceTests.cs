@@ -1,13 +1,13 @@
 using System;
 using CmsSyncService.Application.Services;
 using CmsSyncService.Application.DTOs;
+using CmsSyncService.Application.Caching;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Moq;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 using CmsSyncService.Application.Repositories;
 using CmsSyncService.Domain;
 using System.Text.Json;
@@ -24,7 +24,7 @@ public class CmsEventApplicationServiceTests
 
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
-        var cacheMock = new Mock<IMemoryCache>();
+        var cacheMock = new Mock<IEntityCacheService>();
         var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
         var events = new List<CmsEventDto>();
 
@@ -45,7 +45,7 @@ public class CmsEventApplicationServiceTests
     {
         var repoMock = new Mock<ICmsEntityRepository>();
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
-        var cacheMock = new Mock<IMemoryCache>();
+        var cacheMock = new Mock<IEntityCacheService>();
         var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
         await Assert.ThrowsAsync<ArgumentNullException>(() => service.ProcessBatchAsync(null!));
     }
@@ -56,7 +56,7 @@ public class CmsEventApplicationServiceTests
         var repoMock = new Mock<ICmsEntityRepository>();
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
-        var cacheMock = new Mock<IMemoryCache>();
+        var cacheMock = new Mock<IEntityCacheService>();
         var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
         var invalidDto = new CmsEventDto { Id = null!, Type = null!, Version = 1, Timestamp = DateTimeOffset.UtcNow };
         var events = new List<CmsEventDto> { invalidDto };
@@ -75,7 +75,7 @@ public class CmsEventApplicationServiceTests
         var repoMock = new Mock<ICmsEntityRepository>();
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
-        var cacheMock = new Mock<IMemoryCache>();
+        var cacheMock = new Mock<IEntityCacheService>();
         var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
         var events = new List<CmsEventDto> { new CmsEventDto { Id = "id", Type = "delete", Version = 1, Timestamp = DateTimeOffset.UtcNow } };
         await service.ProcessBatchAsync(events, CancellationToken.None);
@@ -96,7 +96,7 @@ public class CmsEventApplicationServiceTests
         var existingEntity = CmsEntity.CreatePublished(new CmsEvent { Id = "id", Payload = "{\"foo\":\"bar\"}", Version = 2, Timestamp = eventDto.Timestamp, Type = CmsEventType.Publish });
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity> { existingEntity });
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
-        var cacheMock = new Mock<IMemoryCache>();
+        var cacheMock = new Mock<IEntityCacheService>();
         var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
         var events = new List<CmsEventDto> { new CmsEventDto { Id = "id", Type = "publish", Version = 1, Timestamp = DateTimeOffset.UtcNow, Payload = JsonDocument.Parse("{\"foo\":\"bar\"}").RootElement } };
         await service.ProcessBatchAsync(events, CancellationToken.None);
@@ -115,7 +115,7 @@ public class CmsEventApplicationServiceTests
         repoMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(new List<CmsEntity>());
         repoMock.Setup(r => r.AddAsync(It.IsAny<CmsEntity>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask).Verifiable();
         var loggerMock = new Mock<ILogger<CmsEventApplicationService>>();
-        var cacheMock = new Mock<IMemoryCache>();
+        var cacheMock = new Mock<IEntityCacheService>();
         var service = new CmsEventApplicationService(repoMock.Object, loggerMock.Object, cacheMock.Object);
         var events = new List<CmsEventDto> {
             new CmsEventDto {
