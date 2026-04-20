@@ -15,4 +15,12 @@ public sealed class RabbitMqOptions
     public string Password { get; init; } = "guest";
 
     public string QueueName { get; init; } = "cms-events";
+
+    public string RetryQueueName { get; init; } = string.Empty;
+
+    public string DeadLetterQueueName { get; init; } = string.Empty;
+
+    public int RetryDelayMilliseconds { get; init; } = 5000;
+
+    public int MaxRetryAttempts { get; init; } = 3;
 }

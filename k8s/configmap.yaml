@@ -13,5 +13,9 @@ data:
   RabbitMQ__Port: "5672"
   RabbitMQ__VirtualHost: /
   RabbitMQ__QueueName: cms-events
+  RabbitMQ__RetryQueueName: cms-events.retry
+  RabbitMQ__DeadLetterQueueName: cms-events.dead-letter
+  RabbitMQ__RetryDelayMilliseconds: "5000"
+  RabbitMQ__MaxRetryAttempts: "3"
   Logging__LogLevel__Default: Information
   Logging__LogLevel__Microsoft.AspNetCore: Warning

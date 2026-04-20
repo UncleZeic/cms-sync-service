@@ -69,12 +69,7 @@ public sealed class RabbitMqCmsEventWorker : BackgroundService
         using var connection = factory.CreateConnection();
         using var channel = connection.CreateModel();
 
-        channel.QueueDeclare(
-            queue: _options.QueueName,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null);
+        RabbitMqTopology.Declare(channel, _options);
         channel.BasicQos(prefetchSize: 0, prefetchCount: 1, global: false);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
@@ -94,7 +89,8 @@ public sealed class RabbitMqCmsEventWorker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to process RabbitMQ CMS event message.");
-                channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
+                RepublishFailedMessage(channel, args);
+                channel.BasicAck(args.DeliveryTag, multiple: false);
             }
         };
 
@@ -105,5 +101,66 @@ public sealed class RabbitMqCmsEventWorker : BackgroundService
 
         _logger.LogInformation("RabbitMQ CMS event worker consuming queue {QueueName}", _options.QueueName);
         await Task.Delay(Timeout.InfiniteTimeSpan, stoppingToken);
+    }
+
+    private void RepublishFailedMessage(IModel channel, BasicDeliverEventArgs args)
+    {
+        var retryCount = GetRetryCount(args.BasicProperties) + 1;
+        var targetQueue = retryCount > _options.MaxRetryAttempts
+            ? RabbitMqTopology.GetDeadLetterQueueName(_options)
+            : RabbitMqTopology.GetRetryQueueName(_options);
+
+        var properties = channel.CreateBasicProperties();
+        properties.ContentType = args.BasicProperties.ContentType;
+        properties.DeliveryMode = 2;
+        properties.Headers = CopyHeaders(args.BasicProperties);
+        properties.Headers["x-retry-count"] = retryCount;
+
+        channel.BasicPublish(
+            exchange: string.Empty,
+            routingKey: targetQueue,
+            mandatory: false,
+            basicProperties: properties,
+            body: args.Body);
+
+        if (retryCount > _options.MaxRetryAttempts)
+        {
+            _logger.LogError(
+                "Moved RabbitMQ CMS event message to dead-letter queue {DeadLetterQueueName} after {RetryCount} failed attempts.",
+                targetQueue,
+                retryCount);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Moved RabbitMQ CMS event message to retry queue {RetryQueueName}. Attempt {RetryCount} of {MaxRetryAttempts}.",
+                targetQueue,
+                retryCount,
+                _options.MaxRetryAttempts);
+        }
+    }
+
+    private static Dictionary<string, object> CopyHeaders(IBasicProperties properties)
+    {
+        return properties.Headers is null
+            ? new Dictionary<string, object>()
+            : new Dictionary<string, object>(properties.Headers);
+    }
+
+    private static int GetRetryCount(IBasicProperties properties)
+    {
+        if (properties.Headers is null ||
+            !properties.Headers.TryGetValue("x-retry-count", out var value))
+        {
+            return 0;
+        }
+
+        return value switch
+        {
+            int retryCount => retryCount,
+            long retryCount => checked((int)retryCount),
+            byte[] bytes when int.TryParse(Encoding.UTF8.GetString(bytes), out var retryCount) => retryCount,
+            _ => 0
+        };
     }
 }

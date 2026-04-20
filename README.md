@@ -12,6 +12,7 @@ A .NET 10 Web API that ingests CMS webhook events, stores the latest known entit
 CMS event ingestion can run in two modes:
 - Direct mode: the API processes events during the request, useful for tests and simple local runs.
 - RabbitMQ mode: the API enqueues events and returns `202 Accepted`; a hosted worker consumes the queue and updates PostgreSQL.
+- Failed RabbitMQ messages are moved through a bounded retry queue and then to a dead-letter queue instead of being requeued forever.
 
 ## Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/)

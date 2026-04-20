@@ -27,12 +27,7 @@ public sealed class RabbitMqCmsEventPublisher : ICmsEventPublisher
         using var connection = factory.CreateConnection();
         using var channel = connection.CreateModel();
 
-        channel.QueueDeclare(
-            queue: _options.QueueName,
-            durable: true,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null);
+        RabbitMqTopology.Declare(channel, _options);
 
         var payload = JsonSerializer.Serialize(events, SerializerOptions);
         var body = Encoding.UTF8.GetBytes(payload);

@@ -31,6 +31,10 @@ services:
       RabbitMQ__UserName: guest
       RabbitMQ__Password: guest
       RabbitMQ__QueueName: cms-events
+      RabbitMQ__RetryQueueName: cms-events.retry
+      RabbitMQ__DeadLetterQueueName: cms-events.dead-letter
+      RabbitMQ__RetryDelayMilliseconds: 5000
+      RabbitMQ__MaxRetryAttempts: 3
     depends_on:
       db:
         condition: service_healthy
