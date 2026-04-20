@@ -29,9 +29,9 @@ public class CmsSyncDbContext : DbContext
             entity.Property(x => x.Id)
                 .HasMaxLength(200)
                 .IsRequired();
-            entity.Property(x => x.Payload)
-                .HasColumnType("jsonb")
-                .IsRequired();
+            var payloadProperty = entity.Property(x => x.Payload).IsRequired();
+            if (Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite")
+                payloadProperty.HasColumnType("jsonb");
             entity.Property(x => x.Version)
                 .IsRequired();
             entity.Property(x => x.Published)
