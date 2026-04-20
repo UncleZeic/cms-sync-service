@@ -33,7 +33,7 @@ namespace CmsSyncService.Infrastructure.Migrations
 
                     b.Property<string>("Payload")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.Property<bool>("Published")
                         .HasColumnType("boolean");

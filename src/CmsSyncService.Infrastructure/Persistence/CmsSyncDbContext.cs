@@ -30,6 +30,7 @@ public class CmsSyncDbContext : DbContext
                 .HasMaxLength(200)
                 .IsRequired();
             entity.Property(x => x.Payload)
+                .HasColumnType("jsonb")
                 .IsRequired();
             entity.Property(x => x.Version)
                 .IsRequired();

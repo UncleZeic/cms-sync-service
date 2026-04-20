@@ -138,6 +138,14 @@ Entity list response example:
 - Admin disable is an API-side override and does not affect CMS data.
 - Entity IDs may contain only letters, numbers, hyphens, and underscores.
 
+## Data Model
+The persistence model is intentionally hybrid:
+
+- Relational columns model operational state: entity ID, version, publish state, admin-disabled state, and update timestamp.
+- CMS payload is stored as PostgreSQL `jsonb`, because its schema belongs to the upstream CMS and can evolve independently.
+- Read APIs currently return the stored payload without querying inside it, so the service avoids premature payload-specific tables.
+- If future product requirements need filtering or ranking by payload fields, those fields should become explicit relational columns or dedicated indexes instead of ad hoc JSON scans.
+
 ## Testing
 Unit tests and integration tests can be run with:
 
