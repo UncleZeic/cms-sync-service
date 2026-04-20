@@ -17,5 +17,8 @@ data:
   RabbitMQ__DeadLetterQueueName: cms-events.dead-letter
   RabbitMQ__RetryDelayMilliseconds: "5000"
   RabbitMQ__MaxRetryAttempts: "3"
+  RateLimiting__CmsEventIngestion__PermitLimit: "60"
+  RateLimiting__CmsEventIngestion__WindowSeconds: "60"
+  RateLimiting__CmsEventIngestion__QueueLimit: "0"
   Logging__LogLevel__Default: Information
   Logging__LogLevel__Microsoft.AspNetCore: Warning

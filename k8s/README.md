@@ -4,6 +4,7 @@ These manifests show a production-scaling deployment shape for the CMS Sync Serv
 
 - API deployment with two replicas
 - ClusterIP service for internal API traffic
+- Ingress for external L7 routing into the API service
 - HorizontalPodAutoscaler for API scaling
 - Redis deployment and service for distributed cache
 - RabbitMQ deployment and service for asynchronous CMS event processing
@@ -30,7 +31,10 @@ kubectl apply -f k8s/rabbitmq-deployment.yaml
 kubectl apply -f k8s/rabbitmq-service.yaml
 kubectl apply -f k8s/api-deployment.yaml
 kubectl apply -f k8s/api-service.yaml
+kubectl apply -f k8s/api-ingress.yaml
 kubectl apply -f k8s/api-hpa.yaml
 ```
+
+The API is stateless, so traffic does not require sticky sessions. Redis carries distributed cache state and RabbitMQ carries asynchronous event work.
 
 For real production, prefer a managed PostgreSQL instance and managed Redis where available. Run EF Core migrations from CI/CD or a dedicated Kubernetes Job before rolling out a new API version.

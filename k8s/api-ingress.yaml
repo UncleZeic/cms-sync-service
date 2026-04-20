@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cms-sync-api
+  namespace: cms-sync
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: cms-sync.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cms-sync-api
+                port:
+                  name: http

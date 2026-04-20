@@ -10,6 +10,7 @@ using CmsSyncService.Api.Messaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using System.Threading.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,6 +27,20 @@ builder.Services.AddAuthentication(options =>
 	options.DefaultChallengeScheme = "BasicAuthentication";
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
+builder.Services.AddRateLimiter(options =>
+{
+	options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+	options.AddPolicy("CmsEventIngestion", context =>
+		RateLimitPartition.GetFixedWindowLimiter(
+			partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+			factory: _ => new FixedWindowRateLimiterOptions
+			{
+				PermitLimit = builder.Configuration.GetValue("RateLimiting:CmsEventIngestion:PermitLimit", 60),
+				Window = TimeSpan.FromSeconds(builder.Configuration.GetValue("RateLimiting:CmsEventIngestion:WindowSeconds", 60)),
+				QueueLimit = builder.Configuration.GetValue("RateLimiting:CmsEventIngestion:QueueLimit", 0),
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+			}));
+});
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 if (string.IsNullOrWhiteSpace(redisConnectionString))
 {
@@ -113,6 +128,8 @@ if (!app.Environment.IsDevelopment())
 {
 	app.UseHttpsRedirection();
 }
+app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapGet("/health", [AllowAnonymous] () => Results.Text("Healthy"));

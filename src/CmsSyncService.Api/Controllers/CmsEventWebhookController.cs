@@ -3,12 +3,14 @@ using CmsSyncService.Application.DTOs;
 using CmsSyncService.Api.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CmsSyncService.Api.Controllers
 {
     [ApiController]
     [Route("cms/events")]
     [Authorize(Roles = "EventUpdater")]
+    [EnableRateLimiting("CmsEventIngestion")]
     public class CmsEventWebhookController : ControllerBase
     {
         private readonly ICmsEventPublisher _publisher;
