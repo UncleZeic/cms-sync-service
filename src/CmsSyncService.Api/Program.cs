@@ -7,6 +7,7 @@ using CmsSyncService.Infrastructure.Persistence;
 using CmsSyncService.Application.Caching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +25,39 @@ builder.Services.AddAuthentication(options =>
 }).AddScheme<AuthenticationSchemeOptions, BasicAuthHandler>("BasicAuthentication", null);
 builder.Services.AddControllers();
 	builder.Services.AddMemoryCache();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+	options.SwaggerDoc("v1", new OpenApiInfo
+	{
+		Title = "CMS Sync Service API",
+		Version = "v1"
+	});
+
+	options.AddSecurityDefinition("Basic", new OpenApiSecurityScheme
+	{
+		Description = "Basic Authentication header using the Basic scheme.",
+		Name = "Authorization",
+		In = ParameterLocation.Header,
+		Type = SecuritySchemeType.Http,
+		Scheme = "basic"
+	});
+
+	options.AddSecurityRequirement(new OpenApiSecurityRequirement
+	{
+		{
+			new OpenApiSecurityScheme
+			{
+				Reference = new OpenApiReference
+				{
+					Type = ReferenceType.SecurityScheme,
+					Id = "Basic"
+				}
+			},
+			Array.Empty<string>()
+		}
+	});
+});
 builder.Services.Configure<CmsSyncService.Application.CacheDurations>(builder.Configuration.GetSection("CacheDurations"));
 builder.Services.AddSingleton<IEntityCacheService, EntityCacheService>();
 
@@ -42,6 +76,12 @@ builder.Services.AddScoped<ICmsEntityAdminService, CmsEntityAdminService>();
 
 var app = builder.Build();
 
+
+if (app.Environment.IsDevelopment())
+{
+	app.UseSwagger();
+	app.UseSwaggerUI();
+}
 
 // WARNING: Basic Auth credentials are only secure over HTTPS. Do not deploy without TLS.
 if (!app.Environment.IsDevelopment())
