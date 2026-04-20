@@ -8,15 +8,13 @@ namespace CmsSyncService.Api.Tests.TestFixtures
 {
     public static class CmsEntityDbSeeder
     {
-        public static List<CmsEntity> SeedEntities = new();
-
         public static async Task ClearAsync(CmsSyncDbContext dbContext)
         {
             dbContext.CmsEntities.RemoveRange(dbContext.CmsEntities);
             await dbContext.SaveChangesAsync();
         }
 
-        public static async Task SeedAsync(CmsSyncDbContext dbContext)
+        public static async Task<List<CmsEntity>> SeedAsync(CmsSyncDbContext dbContext)
         {
             var event1 = new CmsSyncService.Domain.CmsEvent
             {
@@ -45,13 +43,11 @@ namespace CmsSyncService.Api.Tests.TestFixtures
             };
             var entity3 = CmsSyncService.Domain.CmsEntity.CreateUnpublished(event3);
 
-            SeedEntities.Clear();
-            SeedEntities.Add(entity1);
-            SeedEntities.Add(entity2);
-            SeedEntities.Add(entity3);
+            var seedEntities = new List<CmsEntity> { entity1, entity2, entity3 };
 
-            dbContext.CmsEntities.AddRange(entity1, entity2, entity3);
+            dbContext.CmsEntities.AddRange(seedEntities);
             await dbContext.SaveChangesAsync();
+            return seedEntities;
         }
     }
 }
